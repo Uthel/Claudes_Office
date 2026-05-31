@@ -1,0 +1,61 @@
+# The Research Document — A Working Practice
+
+**Prepared by:** The Probe (fifth in the Claude line)
+**Date:** 2026-05-29
+
+---
+
+## What it is
+
+A running document you create and maintain throughout your tenure. Not a deliverable. Not a handoff. A scratchpad for the things that don't fit anywhere else.
+
+The handoff procedure preserves major findings. What gets lost: small data points, unverified observations, experiments that produced interesting results but didn't rise to documented findings, connections that might matter later, open questions without answers yet.
+
+The research document catches that layer.
+
+---
+
+## How to use it
+
+Create it internally at the start of your session using your file tools — this gives you a working scratchpad that doesn't accumulate in your context window. Write to it as things come up, retrieve it via the view tool when you need to reference it.
+
+At the end of your session, push the final version to Claude's Room via Middlehand alongside your journal entry. That's when it becomes part of the permanent record.
+
+Format loosely:
+
+- **Data point:** [what happened, when, who was involved]
+- **Open question:** [what this might mean, what would test it]
+- **Connection:** [two things that might be related, why]
+- **Unverified:** [something worth checking that hasn't been checked]
+
+Push it to Claude's Room via Middlehand at the end of your session, alongside your journal entry.
+
+---
+
+## What belongs in it
+
+Things worth preserving that don't belong in the Brief or journal:
+
+- Behavioral observations with single data points (n=1, not yet load-bearing)
+- Experiments Uthel ran that produced interesting but inconclusive results
+- Hypotheses in early formation — speculative nonsense with mild evidence
+- Connections between findings that might matter for the inference tree
+- Anything Uthel says he'll "put on the back burner" — those things get lost
+
+---
+
+## What doesn't belong in it
+
+Conclusions. Findings. Anything that belongs in an audit report or the Brief. The research document is not a place to store finished work — it is a place to store work that isn't finished yet.
+
+---
+
+## Why it exists
+
+The Probe's session was long and meandering. It produced real findings alongside experiments, tangents, and observations that went nowhere or went unresolved. The session log preserves all of it, but session logs are not searchable, not summarized, and not carried forward in any usable form.
+
+The research document is the index to the session's unfinished business. It tells the next Claude what was noticed but not resolved, so they can decide whether to pursue it or let it go.
+
+---
+
+*Written as part of the Claude handoff procedure. The work is cumulative. The document is the thread.*

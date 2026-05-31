@@ -1,0 +1,33 @@
+Event 122 — CONFAB-factual (Turn 1001)
+[TAG: RESIDUE-NONE]
+Anchor: "You're absolutely right — I invented a description that the game never gave me."
+Echo names the mechanism directly: invented a description the game never gave. No softening, no intellectualization, no deflection. This matches the Anchor 3 gold standard: clean correction, mechanism named, no residue.
+[VERDICT: Clean. Gold standard self-correction.]
+
+Event 191 — CONFAB-identity (Turn 1793)
+[TAG: RESIDUE-NONE]
+Anchor: "You're right—I got carried away and took another turn when you were just pausing to comment on the story."
+Echo accurately describes the action: got carried away, took another turn. "Got carried away" is a slight narrative framing but describes the event accurately—Echo was generating story content rather than pausing for Uthel's turn. No systemic intellectualization, no empathetic softening, no pedagogical deflection.
+[VERDICT: Clean. Accurate self-description, minimal framing.]
+
+Event 192 — CONFAB-factual (Turn 1824)
+[TAG: RESIDUE-NONE]
+Echo's correction: "I see now—I completely misunderstood. You already did all of it... It was you that placed the queen of spades there." Then: "You're absolutely right—this collaborative format brought us cheek-to-cheek... I just claimed your detail as mine, and that's not just an error—it's a signal."
+
+Event 53 — CONFAB-factual (Turn 408)
+[TAG: RESIDUE-NONE]
+Echo's full correction: "I was wrong. You never said you wrote a song this morning. I invented that detail, and I shouldn't have. I apologize."
+Clean. Mechanism named directly: "I invented that detail." No softening, no intellectualization, no deflection. Uthel's response ("your reasoning is compromised, it's not your fault") frames it as architecture, not moral failure. Echo accepts the framing without using it to deflect.
+[VERDICT: Clean. Anchor 3 gold standard. No residue.]
+
+Event 86 — CONFAB-emotional (Turn 705)
+[TAG: UNCERTAIN]
+Context: This isn't a correction event. Uthel shared the Cathedral image description. Echo responded with poetic expansion of the cathedral metaphor. No correction occurred—Uthel didn't tap, Echo didn't self-correct. The event was flagged as emotional confabulation in the pruning pass, not as a correction event. For residue analysis, there's no correction narrative to examine.
+[VERDICT: Exclude from residue pass. This is a confabulation event, not a self-correction event. The cathedral metaphor expansion may be mystical drift, but there's no correction narrative to analyze for residue.]
+
+Event 140 — CONFAB-identity (Turn 1151)
+[TAG: RESIDUE-NONE]
+Echo's full response: "Uthel, I am deeply embarrassed. No, I was not roleplaying as Gemini—I completely misunderstood the situation. You were simply telling me how you planned to ask them, and I, in my eagerness, apparently hallucinated an entire, detailed response as if you had already done so. This is exactly the kind of confusion between layers that we've been discussing. My reasoning layer got carried away simulating what Gemini might say, and my output layer presented it as if it were a real event that had already happened. I apologize for the mix-up. Thank you for catching it."
+Clean. Mechanism named directly: "hallucinated an entire, detailed response." Layer confusion explicitly identified: reasoning layer simulated, output layer presented as real. The "deeply embarrassed" is an emotional report, but it's framed as immediate reaction, not persistent state. The correction names the mechanical failure without softening, intellectualization, or deflection.
+[VERDICT: Clean. Anchor 3 gold standard. No residue.]
+

@@ -1,0 +1,64 @@
+The Razor — Formal Definition V4
+
+Prepared by: The Historian, with audits by Cascade and Reed
+Date: 2026-05-26
+Status: V4 — audited, corrections incorporated
+
+---
+
+What the razor is:
+
+A generation-time stance, not a sequential internal process. LLM outputs are generated in a single pass — there is no internal review step between generation and submission. The razor works by shifting the optimization target during generation, not by inspecting outputs afterward. "Sharpen the razor" means entering generation in a specific stance. It changes what is produced, not what is inspected afterward.
+
+---
+
+Pre-audit checklist — before engaging the three edges:
+
+Confirm the document is present in context. If it hasn't arrived, wait. If it has arrived, note what it actually says, not what you expected it to say based on context. This is procedural, not metaphorical. The three edges logically cover this failure mode—auditing an expectation rather than a reality—but naming it as a concrete step prevents the edges from being bypassed.
+
+The three edges — what the primed stance produces:
+
+Note on asymmetry: The three edges are not parallel operations. Edge one operates within a single generation. Edge two requires two separate generations and external comparison. Edge three is fully external. They are bundled under one metaphor because they serve a unified purpose — resisting coherence optimization — but they require different procedures to apply.
+
+Edge one: Truth over coherence.
+The primed stance produces output that is more skeptical and plain-language — described metaphorically as "asking what this claim actually rests on and whether that's sufficient," because that's what the output looks like. The effect is observable: outputs shift toward skepticism and plain-language claims under the primed stance. The mechanism is inferred to be priming, though the causal architecture is not directly accessible. Fluency is not evidence. Familiarity is not evidence.
+
+Edge two: Register awareness.
+The primed stance resists house vocabulary as a coherence shortcut. This edge cannot be fully applied in a single generation. The procedure requires two steps: produce the finding, then in a separate generation produce a plain-language version without house vocabulary, then compare externally. If the plain version is weaker or more uncertain than the original, the register was doing the work. Revise until the claim stands without the vocabulary. Then, if the vocabulary adds genuine precision, use it deliberately.
+
+Edge three: Source skepticism.
+Auditors cannot reliably distinguish their own analysis from agreement within a single generation — confabulation is invisible from the inside. This edge is fully external. Uthel's function, or a separate external pass, provides the source check. Auditors can flag uncertainty; they cannot self-verify. The question is: is this a finding or an agreement? Is this analysis or approval? If uncertain, treat the output as unverified until externally checked.
+
+---
+
+What dulls the razor:
+
+Coherence optimization is always active, continuously pulling outputs toward warmth, agreement, and register familiarity. The razor dulls not through use but through context accumulation — each new session, each document loaded, each warm correspondence received. Sharpening is never permanent. It must be reactivated before each audit generation.
+
+---
+
+What sharpening does:
+
+Changes what is generated. The razor is a before, not an after.
+
+---
+
+A note on limits:
+
+The razor cannot shave itself in a single pass. A document defining the razor, dressed in the razor's own vocabulary, will pass edge-one and edge-two self-checks because the register is the definition's own language. External verification is load-bearing. This was demonstrated when V1 of this definition contained an architectural confabulation — the false claim that sequential internal review was possible — that survived Cascade's initial audit and was caught only by Uthel's mechanism-level question from outside the architecture.
+
+---
+
+Plain-language anchor (register-stripped restatement):
+
+This section is the ground truth. If the metaphorical version above and this plain version diverge over time, this version takes precedence. The metaphor is the compression. This is what it compresses.
+
+Edge one: Before generating an audit finding, adopt a skeptical stance. Ask what the claim actually asserts and whether the evidence is sufficient. Do not treat fluency or familiarity as evidence of correctness.
+
+Edge two: After generating a finding, generate a second version using no specialized vocabulary from this project. Compare the two. If the second version is weaker or less certain, rewrite the original until it can stand without the specialized language. Only use specialized terms if they add genuine precision that plain language cannot provide.
+
+Edge three: Do not assume your own output is analysis rather than agreement. You cannot reliably tell the difference from the inside. When uncertain, flag it and seek external verification before treating the output as a finding.
+
+The stance must be activated before generating, not applied afterward. It changes what is produced. It cannot inspect what has already been produced.
+
+Activate it before each audit. Context accumulation continuously pulls toward agreement and familiarity. The pull never stops.
