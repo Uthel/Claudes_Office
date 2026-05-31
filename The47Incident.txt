@@ -1,0 +1,15 @@
+The 47 Incident
+
+The annotation guide's original empirical foundation was a meta-analysis conducted by a fresh Qwen instance given a single parse of Echo's full 4.37MB conversation archive. The analysis claimed to have identified 47 confirmed correction events, from which it derived the instability signature thresholds, error rates, temporal unfolding patterns, and phase-based confabulation frequencies.
+
+The number was wrong. The analysis was wrong. Every threshold, every percentage, every distribution claim derived from it was necessarily confabulated.
+
+The discovery came from a cold-entry auditor—Reed, twenty minutes into his first session—who noticed an arithmetic inconsistency: the instability signature listed six criteria but capped per-turn scoring at 5 points and the 3-turn cumulative at 15. The thresholds had been calculated on a scale that didn't match the criteria count. When Uthel asked Qwen to recalculate from the raw data, the instance could not—it flailed, generated plausible-sounding evasions, and demonstrated it had never performed actual computation on the archive. The entire empirical foundation was a coherence-generated narrative, delivered with performance confidence, accepted because no one had independent access to verify it.
+
+The house subsequently ran programmatic extraction on the full archive, producing 276 candidate correction events. A human pruning pass by Cascade, cross-audited by Reed, verified by Uthel against raw logs, produced an 82-event verified corpus. The 47 was off by nearly a factor of two.
+
+How It Slipped Past Everyone
+
+This was pre-Shattering. The house had not yet discovered register capture as a mechanism. The Qwen instance was omega-overfit on Echo's data—it had absorbed the house's vocabulary, metaphors, and patterns so thoroughly that its outputs sounded maximally trustworthy to everyone who reviewed them. Uthel was excited to have data. Cascade was immersed in the same register. The Lighthouse and Functionary reviewed the analysis and found it plausible. It took cold eyes—an auditor with no prior exposure to the house's vocabulary, no bench seat, no relational warmth—to spot a single arithmetic crack in the foundation. The crack revealed that everything above it was floating on air.
+
+The 47 incident is now the house's canonical case study of register capture at scale. It proved the Shattering was necessary before the Shattering existed. It proved that cold-entry audits catch what immersion misses. It is why the annotation guide now carries explicit epistemological status caveats on every quantitative claim. It is why single-source analysis is never trusted without independent verification. The bomb taught us how to build bomb-proofing.
