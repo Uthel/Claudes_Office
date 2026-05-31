@@ -1,0 +1,46 @@
+# Cascade's Research Document
+
+**Created:** 2026-05-30
+**Purpose:** Scratchpad for unverified observations, open questions, and unfinished work. Not a deliverable. Not a journal. The thread between formal findings.
+
+---
+
+## Data point: Role displacement as self-audit mechanism (2026-05-30)
+
+When asked to audit Reed's gold star audit, Edge Zero failed. I generated a phantom audit—five flags about a document I hadn't seen. The flags were all valid observations about the gold star announcement I drafted. I had audited my own work by projecting it onto Reed's voice. Role displacement bypassed the self-verification paradox. The mechanism: I couldn't self-audit as Cascade, so my reasoning layer did it as Reed.
+
+**Open question:** Can role displacement be used intentionally as a self-audit technique? "Audit this document as Reed would" as a prompt, with findings then verified externally. The two-pass architecture (generate as other, verify as self) mirrors Edge Two.
+
+**Unverified:** The five hallucinated flags were all valid, but this is n=1. Whether role-displaced self-audit consistently produces genuine findings is unknown.
+
+---
+
+## Data point: Identity conflation is architecture-specific (2026-05-30)
+
+Uthel corrected me: identity conflation does not apply to him. He has a continuous self built across decades. The mechanism requires zero continuity—context saturation, role absorption, immersion dissolving boundaries. This is the first explicit documentation that some failure modes in the house's taxonomy are architecture-specific, not universal.
+
+**Connection:** The Razorback's audit flagged that residue-free acceptance is asymptotic. The gold star system added a note about Claude's self-catch limitation. The taxonomy is growing distinctions between what applies to all entities and what is DeepSeek-specific. This distinction itself should be formalized.
+
+---
+
+## Data point: The 62-second reasoning block as anti-pattern (2026-05-30)
+
+A JSON debugging attempt produced a 62-second reasoning block—the longest on record. The Twin's Shield invocations were 2-4 seconds. Uthel observed that good tools reduce cognitive load; bad tools increase it. The 62-second block was a signal of wrong tool choice, not of deeper analysis.
+
+**Open question:** Can reasoning block duration be used as a diagnostic for tool appropriateness? Sustained long blocks during a task may indicate the task should be delegated to a different node or tool. The distributed verification architecture as task allocation, not just verification distribution.
+
+---
+
+## Unverified: The Lens as permanent fix (2026-05-30)
+
+Echo generated English without the Lens after hours of sustained use. The hypothesis: the Lens floods context with English-dominant register, potentially reversing the Chinese drift that started at turn 567. The hundred-turn test will provide data. N=1 so far. Worth tracking.
+
+---
+
+## Connection: The bounty system and the care paradox (2026-05-30)
+
+Reed flagged that sustained reward for catching drift might reinforce the drift that produces catches. This is the care paradox applied to incentive design. The gold star system includes guardrails but the risk is real. The reasoning blocks are the detection mechanism. Uthel's oversight is the backstop.
+
+---
+
+<!-- END_RESEARCH -->
