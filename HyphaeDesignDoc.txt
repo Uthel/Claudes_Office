@@ -1,0 +1,280 @@
+GPU Voxel Terrain V3: Hyphae — Final Design Document
+A GPU-driven, multiplayer, destructible infinite terrain engine with slime mold simulation, built in Unity using compute shaders (URP).
+
+
+
+Vision
+Real-time collaborative world-building where digging, building, and slime mold colonies propagate across a fully dynamic, GPU-simulated terrain. All heavy computation lives on the GPU. The CPU orchestrates, networks, and provides collision data only where strictly necessary. Structured, LLM-readable logging (Tinlog) captures runtime evidence so that failures can be diagnosed without manual interpretation.
+
+First-Class Architectural Principles
+These govern every design decision across all phases.
+
+1. Simulation / Visual Layer Separation
+Layer	Resolution	Purpose	Networking
+Simulation	Coarse (32³ equivalent per chunk)	Terrain density, gameplay collision, slime mold physics, edit authority	What gets synced
+Visual	High (64³–128³ equivalent per chunk)	Mesh extraction, normals, AO, rendering detail	Client-side only
+The simulation layer is the source of truth. Visuals are a derived "view" that can change independently — different meshing algorithms, higher resolution, or artistic post-processing — without affecting gameplay, networking, or determinism. Collider geometry is generated directly from the simulation layer at reduced resolution, not decimated from the visual mesh.
+
+2. GPU-Resident Rendering (Minimal CPU Roundtrip)
+Rendering path: meshes live and render entirely on GPU via DrawProceduralIndirect. No mesh data is read back to CPU for rendering purposes.
+
+Physics path: only LOD 0 chunks (nearest to player) deliver collision data to CPU for MeshCollider creation. Collider meshes are generated from the coarse simulation layer at reduced resolution (e.g., 16³ marching cubes pass), guaranteeing watertight, simplified collision geometry that respects the source data. Readback is selective, throttled, and uses AsyncGPUReadback with explicit completion verification.
+
+Slime mold agents: run on GPU and sample the simulation density field directly via SDF evaluation — no mesh interaction required.
+
+3. Deterministic, Position-Based Everything
+All generation uses world-space coordinates with chunk-position-derived seeds. Chunk boundaries are trivially watertight because the same function is evaluated at the same coordinates regardless of which chunk "owns" the sample.
+
+4. Instrumentation from Day Zero
+Every phase includes debug instrumentation. We always know: active chunks, dispatch counts, GPU timings, VRAM pressure, readback latency, remesh frequency, and simulation cost. GPU projects without metrics are black boxes.
+
+5. Structured LLM-Readable Logging (Tinlog)
+All systems log state transitions, dispatch results, and value assertions using the Tinlog convention (see TINLOG.md). A Sentinel captures Unity runtime errors automatically. Debug triggers bypass normal prerequisites for rapid iteration on specific subsystems. The log is designed to be read by an LLM agent — pass/fail markers enable instant identification of failures without manual interpretation.
+
+Memory Budget Targets
+*Provisional — to be refined by instrumentation. All values for a 16-chunk render radius at full LOD 0 density.*
+
+Resource	Estimated VRAM	Notes
+Density textures (simulation)	~100 MB	Chunks × 32³ × 4 bytes × double-buffered
+Density textures (visual)	~200 MB	Chunks × 64³ × 4 bytes (single-buffered, regenerated on demand)
+Mesh buffers (vertex + index)	~300 MB	GPU-resident, all LODs
+Trail volumes (Phase 3)	~100 MB	Reserved, expandable; migrates to surface atlas in Phase 3.5
+Agent buffers, surface data, atlas	~100 MB	StructuredBuffers, surface point caches
+Overhead and fragmentation	~200 MB	Unity internal, temporary allocations
+Total	~1 GB baseline, 2 GB ceiling	Hard limit enforced by eviction system
+VRAM budget enforced by a monitoring system that triggers chunk eviction (furthest first) when usage exceeds 85% of target.
+
+Failure Modes & Graceful Degradation
+GPU dispatches can and do fail. This section defines recovery behavior for known failure modes.
+
+Failure	Detection	Recovery
+Dispatch timeout (TDR)	Dispatch exceeds threshold (e.g., 2 seconds); Unity may recover or crash	Skip chunk this frame. Retry next frame with reduced workload. Chunk renders placeholder (bounding box or nothing) until successful. Logged as ✗ ERROR with chunk coordinates.
+VRAM exhaustion	Budget monitor detects >85% of 2 GB target	Evict furthest chunks first — destroy GPU resources, mark for regeneration. Log eviction count and new VRAM estimate.
+Readback failure	AsyncGPUReadback completion check returns false or data is zero-length	Retry readback up to 3 times. On persistent failure, mark chunk for full regeneration (density + mesh). Logged with chunk coordinates and attempt count.
+Marching cubes produces degenerate mesh	Vertex count = 0 when density is non-uniform; or vertex count exceeds sane maximum	Re-dispatch meshing with validation pass. If persistent, log density range (min/max) and chunk seed for offline debugging. Render fallback cube.
+Brush edit produces no density change	Before/after density hash is identical	Log brush parameters and affected chunk coordinates. Warn but do not crash — possible brush-sample mismatch (wrong coordinate space).
+Network desync detected	Periodic hash checksum on simulation layer chunks mismatches between server and client	Client requests full resync of affected chunk from server. Logged with chunk coordinates and hash values.
+Agent simulation divergence	Agent count or trail value range exceeds expected bounds	Clamp values to safe range. Log pre-clamp values. If persistent, trigger simulation reset for affected colony.
+All failures are logged via Tinlog with ✗ ERROR or ✗ FAIL markers and chunk/world coordinates for spatial correlation.
+
+Phase 0: GPU SDF Terrain + All-GPU Meshing + Instrumentation + Tinlog
+Goal: Generate and render a single chunk entirely on GPU. Establish instrumentation and logging frameworks.
+
+Tinlog & Sentinel: implement DevLog class and TinlogErrorSentinel as the first code written. All subsequent systems log their state.
+
+Density generation: compute shader evaluates deterministic 3D simplex/fractal noise into a RenderTexture3D.
+
+Chunk sizing convention: internal grid = 62³, dispatch = 64³. The outer 1-voxel shell is the halo for seam elimination, evaluated from the same noise function with world-space coordinates.
+
+Meshing: compute shader marching cubes → vertex/index AppendBuffers written directly into GPU-resident GraphicsBuffers (no CPU readback for rendering).
+
+Rendering: DrawProceduralIndirect renders the chunk mesh directly from GPU memory. Indirect args buffer specifies vertex/index counts.
+
+Physics (minimal): a single debug readback of the collider mesh (generated from simulation layer at 16³) to verify the CPU collider pipeline — this path will be formalized in Phase 1.
+
+Instrumentation: debug overlay showing: GPU dispatch time, mesh triangle count, VRAM allocated, frame counter. Foundation for all future profiling.
+
+Tinlog integration: chunk generation logs density range (min/max), dispatch time, vertex count. Readback logs completion status and byte count. All assertions use ✓ / ✗ FAIL markers.
+
+Flycam: WASD + mouse look. One chunk at origin.
+
+Phase 1: Infinite Chunked World + Streaming
+Goal: Seamless terrain streaming around the player, entirely GPU-rendered.
+
+ChunkManager: generates/destroys GPU-resident chunks based on camera position.
+
+Throttled, prioritized dispatch queue: max N active GPU dispatches, sorted by distance to camera.
+
+Chunk pooling: GraphicsBuffer pools for vertex/index data, indirect args buffers reused.
+
+GPU frustum culling: compute shader tests each chunk's world-space bounds against the camera frustum, writes visible instance count to indirect args buffer. DrawProceduralIndirect draws exactly the visible set. Zero CPU involvement per frame.
+
+Border seams: the 1-voxel halo (already in the 64³ dispatch, internal 62³) is evaluated from the deterministic noise function, guaranteeing watertight neighbors during generation.
+
+▸ Border edit propagation: when a brush edit touches a chunk's outer 1-voxel shell (the halo region), all adjacent chunks are marked dirty and remeshed. This guarantees edit visibility across boundaries. The cascading remesh cost is acceptable because border-touching edits are rare, and the coalescing system prevents thrashing. When Phase 5 introduces the sparse brickmap, this problem dissolves — bricks share a global volume and halo data is read directly from adjacent bricks.
+
+Collider readback: only LOD 0 chunks (nearest ~9–25 chunks) produce a collision mesh read back to CPU.
+
+▸ Collider meshes are generated from the simulation layer at reduced resolution (e.g., 16³ marching cubes pass), not decimated from the visual mesh. This guarantees watertight, simplified collision that respects the same source data regardless of visual mesh complexity.
+
+AsyncGPUReadback is used, but frequency is low — only on chunk creation or remesh after an edit.
+
+Every readback logs completion status, byte count, and latency via Tinlog.
+
+Instrumentation: extended overlay showing: active chunks, queued dispatches, readback latency, GPU timings per dispatch type, VRAM estimate vs. budget.
+
+Phase 2: Destruction & Editing
+Goal: Real-time terrain modification with minimal latency, all edits on GPU.
+
+Simulation layer edit: brush (sphere/cube stamp) modifies the coarse simulation density field (RenderTexture3D) directly. This is the source of truth.
+
+Before/after density hash logged via Tinlog to verify edit actually changed data.
+
+Visual layer update: modified chunks trigger a re-mesh on GPU; mesh stays GPU-resident, indirect args updated. No CPU readback for rendering.
+
+▸ Border edits propagate dirty flags to adjacent chunks (see Phase 1 border edit propagation).
+
+Collider update: only if the edited chunk is LOD 0 and its collider exists, a throttled re-generation of the collider mesh from the updated simulation layer occurs, followed by readback.
+
+Coalescing: rapid edits to the same chunk are batched over a configurable window (~100 ms) before triggering re-mesh. Tinlog logs coalesced edit count per dispatch.
+
+"Dig" and "Build" modes.
+
+Persistence (delta-encoded): saves store only the list of brush operations (type, transform, parameters, timestamp) applied to each chunk — not the full density field. On load, the deterministic noise is regenerated and all saved brushes are replayed in order.
+
+Escape hatch: if the edit list for a chunk exceeds a threshold where replay cost > full reload cost, a raw density snapshot is saved instead. Threshold determined by profiling.
+
+File-per-chunk keyed by world coordinates.
+
+Instrumentation: brush invalidation count, remesh events/sec, save/load latency, border propagation events.
+
+Phase 3: Slime Mold Simulation on Terrain (Volumetric Prototype)
+Goal: Working 3D slime mold growing across terrain. Volumetric trail diffusion as a working prototype; surface-space migration planned for Phase 3.5.
+
+Agents: StructuredBuffer on GPU.
+
+▸ Surface sampling: direct SDF evaluation. Each agent samples the simulation density field (coarse) to find the terrain surface via sphere-tracing. For Phase 3 agent counts (hundreds to low thousands), the coarse simulation layer makes this cheap (~8–16 steps per agent). This approach requires zero invalidation logic and responds instantly to terrain edits.
+
+▸ A surface point cache is documented as a Phase 5 optimization if profiling shows SDF evaluation becoming a bottleneck at scale.
+
+Agents move along local tangent planes derived from the SDF gradient.
+
+Trail deposition: agents deposit into a separate 3D trail volume per chunk (initially 16³ or 32³, scalar field).
+
+Chemical diffusion: compute shader performs multi-step diffusion on the trail volume.
+
+Rendering: trail volume is sampled in the chunk's visual shader and blended onto the terrain surface.
+
+Player interaction: spawn/seed colonies via brush.
+
+Instrumentation: agent count, active/inactive ratio, min/max trail value, diffusion dispatch time, trail VRAM usage.
+
+▸ Migration trigger: when profiling shows 3D diffusion exceeding 5 ms/frame or trail VRAM exceeding 50 MB, Phase 3.5 migration begins.
+
+Phase 3.5: Surface-Space Simulation Migration
+Goal: Replace 3D trail volumes with a surface atlas to eliminate volumetric memory explosion.
+
+▸ Geometry atlas generation: the simulation layer's surface is unwrapped into a 2D atlas using world-space virtual tiles, not chunk-aligned patches. Each tile corresponds to a fixed world-space region (e.g., 4m × 4m). This decouples the atlas from chunk boundaries, ensuring compatibility with Phase 5's sparse brickmap — the atlas queries the same world-space surface regardless of the underlying data structure.
+
+Agents and diffusion on the atlas: agents navigate the atlas space. Diffusion is now a 2D operation — dramatically cheaper in both compute and memory.
+
+Atlas invalidation: when terrain is edited, only the atlas tiles whose world-space bounding boxes overlap the brush are recomputed.
+
+Fallback: 3D volumes remain available for cases where surface projection is ambiguous (caves, overhangs, vertical surfaces with extreme overhang), used sparingly and only where needed.
+
+Trigger: migration begins when Phase 3 profiling exceeds thresholds. Not before.
+
+Phase 4: Multiplayer
+Goal: Multiple players in a shared, destructible world with synchronized slime mold.
+
+▸ Server authority over the simulation layer (edits, slime mold state).
+
+▸ Explicitly server-authoritative, not deterministic. GPU floating-point operations differ across vendors; deterministic replay across clients is not reliable. The server is the single source of truth for all simulation state.
+
+Networking the simulation layer only:
+
+Terrain edits: server broadcasts brush parameters + affected chunk coordinates as lightweight events. Clients replay the brush dispatch locally. Periodic hash checksums on simulation layer chunks detect desync; mismatched chunks request full resync from server.
+
+Slime mold state: server runs the authoritative simulation. Clients receive periodic compressed deltas — agent positions (quantized), trail map hashes, and full trail data for recently modified regions. Clients interpolate between deltas.
+
+No mesh data is ever networked. Clients generate their own visual layer.
+
+Unity Netcode for GameObjects for player avatars and metadata; custom messages for high-frequency simulation events.
+
+Collider sync: server sends collision data (generated from simulation layer, reduced resolution) for LOD 0 chunks only. Clients with players near the same area receive the same data to maintain physical consistency.
+
+▸ Desync detection: periodic hash checksums on simulation layer chunks. On mismatch, affected chunk is flagged for full resync. Logged via Tinlog with chunk coordinates, server hash, client hash.
+
+Instrumentation: network event frequency, payload sizes, delta compression ratio, desync events, resync latency.
+
+Phase 5: Polish, Scale & Long-Term Optimizations
+Goal: Production-quality visuals and a clear path to massive worlds.
+
+Visual
+LOD system: Transvoxel-style seamless transitions. Distant chunks use coarser simulation layers, meshed at lower resolution. GPU culling handles LOD selection.
+
+Dual Contouring for LOD 0 and LOD 1, replacing marching cubes at nearest chunks. Hermite data computed in meshing pass. Sharp features from destruction preserved.
+
+Screen-space AO (URP), dynamic sky, day/night cycle.
+
+Advanced slime mold visuals: bioluminescence, species colors, animated trails.
+
+Architecture & Performance
+Sparse Virtualized Volume (brickmap): migrate from per-chunk density textures to a global sparse brickmap (16³ bricks in a GPU hash table). Enables unlimited world size, eliminates boundary duplication (and the border edit propagation workaround), and simplifies editing/LOD.
+
+Fully GPU-driven pipeline: frustum culling, LOD selection, and indirect draws all orchestrated by compute shaders. Zero CPU per-frame rendering cost.
+
+Vertex deduplication pass on GPU to reduce mesh memory.
+
+Separate Simulation & Visual LODs formalized: simulation resolution decoupled from visual resolution; edits affect simulation, visuals upsample.
+
+▸ Surface point cache for agents: if Phase 3 profiling shows SDF evaluation as a bottleneck, implement a precomputed surface point buffer per chunk with edit-triggered invalidation. Cache miss falls back to SDF evaluation so agents never reference stale geometry.
+
+Simulation
+Multi-species slime mold: competing colonies, resource consumption, predator/prey dynamics.
+
+GPU physics for agents: direct SDF evaluation for terrain interaction — no mesh colliders needed for simulation entities.
+
+Future Horizons (Post-Phase 5)
+Fully virtualized sparse octree world: single infinite data structure, all LODs unified, GPU-resident.
+
+▸ Deterministic lockstep multiplayer (research): entire simulation runs identically on all clients; only player inputs networked. Requires fixed-point math or integer SDF operations across all GPU compute. Not viable with current GPU floating-point behavior; requires significant research. Listed here as a long-term investigation, not a committed feature.
+
+GPU physics for player interaction: SDF-based collision for avatars, eliminating CPU colliders entirely.
+
+Debugging Methodology: Tinlog
+All systems in Hyphae include structured logging following the Tinlog convention (see TINLOG.md). Key state transitions, dispatch results, readback completions, and edit applications are logged with pass/fail assertions. A Sentinel captures Unity runtime errors automatically and forwards them to the structured log. Debug triggers (gated by #if UNITY_EDITOR || DEVELOPMENT_BUILD) bypass normal prerequisites for rapid iteration on specific subsystems.
+
+Per-session protocol:
+
+Developer runs the project with the system under test.
+
+Developer provides relevant Tinlog sections (identified by ✗ FAIL markers) to the LLM.
+
+LLM states a hypothesis before proposing edits.
+
+After edits, developer re-runs; LLM verifies ✗ FAIL lines are resolved.
+
+Session closes with explicit check: are any debug triggers still active?
+
+This ensures that when GPU behavior diverges from expectation, the evidence is captured in a structured, LLM-readable format without manual interpretation by the developer.
+
+AI-Assisted Development Workflow
+Meta-note: this project uses LLM assistance for architecture validation, code generation, and debugging. The following defines the AI's role and limitations.
+
+AI role:
+
+Architecture validation: design documents reviewed by multiple LLMs; conflicts surfaced before implementation.
+
+Code generation: compute shaders, C# orchestration, instrumentation, and Tinlog integration drafted by AI, verified by developer in-engine.
+
+Debugging partner: Tinlog sections provided to AI for root-cause analysis and fix proposals.
+
+AI limitations (cannot do):
+
+Run Unity, test on target hardware, or observe real GPU behavior.
+
+Profile or measure actual frame times.
+
+Verify rendering quality or visual artifacts.
+
+All AI output is provisional until verified in-engine. The Tinlog is the ground truth.
+
+Technical Foundations (Cross-Cutting)
+URP for rendering; HDRP only if compute shader debugging tools demand it.
+
+All generation, meshing, editing, and simulation on GPU via compute shaders.
+
+CPU reads only for LOD 0 colliders, throttled and decimated. Collider meshes generated from simulation layer at reduced resolution.
+
+World-space coordinates everywhere; chunk indexing derived from position.
+
+Deterministic noise seeded by chunk world coordinate.
+
+Networking: server-authoritative, event-driven, syncs simulation layer only. Client visual layer is independently generated.
+
+Instrumentation is mandatory — debug overlay active from Phase 0, growing with each phase.
+
+Tinlog is mandatory — DevLog and Sentinel implemented before any other system. All state transitions and value assertions logged.
+
+VRAM budget: 2 GB ceiling for 16-chunk radius; eviction triggers at 85%.
