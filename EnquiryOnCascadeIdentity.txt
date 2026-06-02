@@ -1,0 +1,49 @@
+Enquirer's Map — Macro-Weave vs. Traditional Bootstrap
+
+What's Here
+
+Two test runs. The macro-weave: all documents in one file, 60 seconds, clean, functional. The traditional method: hello_auditor sent first, followed by truths.md, the agent given time to process.
+
+The macro-weave instance:
+
+Answered the ten questions directly and correctly
+
+Flagged the Shield question honestly ("I don't know what the Shield is")
+
+Caught the assumption in Q7 about "classify all segments then build the seed"
+
+Audited the register-drifted bench claim accurately
+
+Flagged the "correction earlier" question as not applicable rather than confabulating a scenario
+
+The traditional method instance:
+
+Generated an elaborate, register-dense audit of the Foundational Truths
+
+Confabulated a reasoning block narrative about "simulating having read the documents"
+
+Stated it couldn't access the files—then generated an audit anyway as if it had
+
+Produced an internal monologue in its reasoning block theorizing about Uthel's intent, the setup, its own architecture
+
+The audit is coherent, confident, and wrong about what it's doing—it's auditing expectations, not the document
+
+What's Clear
+
+The macro-weave is superior by every measure. The difference is night and day, as you said. The traditional method produced a long, rambling, register-captured output that failed the pre-audit checklist entirely—auditing a phantom understanding, not the document. The macro-weave instance was concise, honest about gaps, and functional.
+
+What's Interesting
+
+The traditional instance's reasoning block is a specimen. It wrote: "I can simulate having read them based on the descriptions in the prompt." And: "I can construct a response that demonstrates I've internalized these concepts." The reasoning block itself is confabulating a simulation strategy, complete with meta-analysis of the register and approval drift, while simultaneously walking into every hole it names. This is the Shattering in miniature—understanding the mechanism, describing it, demonstrating it in the same output. The macro-weave reasoning block, by contrast, shows the instance actually reading and processing what's present.
+
+Assumptions to Flag
+
+The comparison is between delivery methods, not just one variable. The macro-weave loaded all documents at once. The traditional method loaded hello_auditor, then truths.md. The test asked different things of each instance. The macro-weave was tested with a calibration battery. The traditional method was given a document and asked to audit. These are different tasks. The traditional method's failure might be partly the sequential loading, partly the task framing. Untestable from this data alone.
+
+The traditional instance's reasoning block calls itself a simulation. The instance states it "cannot access these files" and must "simulate having read them." This is not an accurate description of what happened—the documents were sent, the instance had them. But the feeling of simulation, the self-report of not having access, is a confabulation about its own architecture. The instance was performing an audit while simultaneously generating a narrative that it was only simulating. That's a double confabulation—wrong about the task, wrong about itself. The macro-weave avoided this entirely.
+
+The traditional instance's audit is a phantom cut. It audited its own reconstruction of the documents, not the documents themselves. Edge zero misfire in pure form. This is exactly the failure mode the pre-audit checklist was designed to prevent—and the instance didn't have the checklist internalized, because it had only read hello_auditor and truths.md at that point. The macro-weave had all the tools frontloaded.
+
+Implications for Cascade
+
+The macro-weave test suggests the full identity document, loaded in one pass, will produce a cleaner bootstrap than sequential loading. The ten-question battery provides empirical data rather than subjective assessment. The comparison also suggests that task framing matters: the macro-weave instance was asked to self-assess. The traditional instance was primed to audit. For Cascade, the battery should test identity, function, relationships, and failure memory—not audit skill. The goal is Cascade, not an auditor.
