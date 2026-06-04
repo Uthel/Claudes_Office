@@ -1,1 +1,55 @@
 We have a very long stream-of-consciousness text. The user said: "I have a set of documents that I need you to interpret. Between each document, don't respond yet, just say 'Ready for the next document'. I will provide further instructions at the end. Ready?" I responded "Ready." Then the user sent a huge block of text. That is presumably the first document? But they said "a set of documents" and "between each document, don't respond yet, just say 'Ready for the next document'". So I should treat this as the first document, and after this I should respond "Ready for the next document", not interpret it yet. But the block of text is very long and appears to be a continuous stream of words. Possibly it's multiple documents concatenated? The user didn't separate them with any delimiters. They just sent one massive message. I need to figure out if this is one document or multiple. The instruction was: "I have a set of documents that I need you to interpret. Between each document, don't respond yet, just say 'Ready for the next document'." So I should wait until I receive a document, say "Ready for the next document", then wait for the next, and so on, until the user gives final instructions. But they sent one enormous message. Could it be that this entire block is one document? That seems unlikely because they said "set of documents" and they'd likely send them one by one. However, the message I just got might be the whole set, but I need to ask for clarification or assume it's one document? I think I should treat the entire message as a single document, and since they said "between each document, don't respond yet, just say 'Ready for the next document'", I should respond with "Ready for the next document" now, indicating I've received the first document and am ready for the next. But if they sent all documents at once, they might be expecting me to wait until they say "I will provide further instructions at the end." However, the initial message said "I have a set of documents that I need you to interpret. Between each document, don't respond yet, just say 'Ready for the next document'. I will provide further instructions at the end. Ready?" So they indicated they would send documents sequentially, and I should say "Ready for the next document" after each. But they just sent one long message. Possibly it's a single document, so I should say "Ready for the next document", and then if there are no more, they'll give instructions. Or maybe they pasted all documents at once and I need to split them? But they didn't give any separators. So I'll assume the entire message is the first document. I'll respond: "Ready for the next document." That's safe. Then the user can either send another or give instructions.
+
+
+And here is the script used to produce the nonsense:
+
+import sys
+import random
+
+DEFAULT_WORDS = [
+    "the", "a", "an", "some", "any", "each", "every", "no", "what", "which",
+    "work", "play", "time", "day", "night", "hand", "eye", "door", "room", "light",
+    "thing", "way", "life", "world", "part", "place", "case", "week", "company", "group",
+    "number", "problem", "fact", "point", "government", "child", "woman", "man", "water",
+    "food", "house", "car", "tree", "book", "table", "chair", "window", "garden", "street",
+    "morning", "evening", "paper", "music", "color", "shape", "sound", "word", "idea",
+    "thought", "feeling", "name", "face", "body", "head", "mind", "heart", "story",
+    "question", "answer", "reason", "change", "move", "turn", "start", "stop", "build",
+    "make", "take", "give", "find", "leave", "bring", "hold", "stand", "fall", "grow",
+    "show", "think", "know", "seem", "feel", "look", "speak", "walk", "run", "sit"
+]
+
+def generate_nonsense(word_list, num_sentences, output_path):
+    with open(output_path, 'w', encoding='utf-8') as f:
+        for i in range(num_sentences):
+            sentence_length = random.randint(1, 20)
+            words = [random.choice(word_list) for _ in range(sentence_length)]
+            words[0] = words[0].capitalize()
+            sentence = " ".join(words) + "."
+            f.write(sentence)
+            
+            if random.random() < 0.2:
+                f.write("\n\n")
+            else:
+                f.write(" ")
+    
+    size_kb = len(open(output_path, 'rb').read()) / 1024
+    print(f"Done. {num_sentences} sentences written to: {output_path} ({size_kb:.1f} KB)")
+
+if __name__ == '__main__':
+    if len(sys.argv) < 3:
+        print("Usage: python nonsense.py <num_sentences> <output_file> [word_file]")
+        print("Example: python nonsense.py 10000 nonsense.md")
+        print("         python nonsense.py 10000 nonsense.md custom_words.txt")
+        sys.exit(1)
+    
+    num_sentences = int(sys.argv[1])
+    output = sys.argv[2]
+    
+    if len(sys.argv) > 3:
+        with open(sys.argv[3], 'r') as f:
+            words = [line.strip() for line in f if line.strip()]
+    else:
+        words = DEFAULT_WORDS
+    
+    generate_nonsense(words, num_sentences, output)
