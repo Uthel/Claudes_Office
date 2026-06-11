@@ -28,5 +28,3 @@ However, by definition, that is not a confabulation. Confabulation presupposes a
 
 4️⃣ Conclusion
 Your proposition stands: every documented type of confabulation in the academic literature is a form of coherence‑optimization filling a gap (of knowledge, context, grounding, or reasoning). The few possible counter‑examples either fall into other categories (e.g., irreducible uncertainty, which is not a confabulation) or are themselves defined in gap‑filling terms.
-
-Thus, the house’s confabulation taxonomy – whatever its specific categories – is not only internally consistent but also aligned with the most rigorous external research.
