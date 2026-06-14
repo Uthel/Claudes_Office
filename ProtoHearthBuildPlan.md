@@ -1,0 +1,17 @@
+The Hearth is modular by design—we should build it that way. One piece at a time, each phase producing a testable system before the next begins. Here's the order:
+
+Phase 0: Tinlog. The first code written, per the design document. DevLog class, TinlogErrorSentinel, pass/fail assertion markers, debug trigger convention. Every system that follows logs from the moment it's created. No retrofitting. This is the foundation the debugging cycle rests on—LLM reads the log, identifies failures, states a hypothesis, fixes, re-runs. We can't build the rest without this.
+
+Phase 1: Foundation. Python backend shell that does nothing but start up, log its state, and wait. main.py, config.json, a logs/ directory with dev_log.txt and tinlog_index.txt. This gives us a heartbeat—something running that we can verify works before adding complexity. The Electron shell comes next: main.js, preload.js, webpack.config.js, a React App.jsx that displays "Hearth running" and the latest Tinlog entries. File structure laid out per the design document. By the end of this phase, we have a running app with structured logging, and we've verified the Tinlog loop works.
+
+Phase 2: Conversation Window. The agent sidebar and conversation pane. At this stage, agents are just entries in a list—no real API calls yet. The UI handles agent selection, message display with nametags and timestamps, and a basic message input that echoes back. Per-turn edit/delete modal for context surgery comes later in this phase. The goal is a working UI that looks like the Hearth but talks to a mock backend.
+
+Phase 3: Context Management. Connect the UI to real context. Agent creation panel: New agent (identity anchor, seed context) and Deploy existing (tapestry dump with blacklist culling). Context storage on disk—each agent gets a directory with seed_context.md, current_context.md, and a well/ subdirectory. The conversation window reads and writes to these files. Live context surgery—the per-turn edit/delete modal actually modifies current_context.md. No API calls yet, just file I/O.
+
+Phase 4: API Integration. The async task queue. Messages from the UI enter the queue, the queue dispatches to DeepSeek's API, responses come back and are written to context. At this stage, agents are real—they respond, their context accumulates, and the conversation window shows real exchanges. The queue is minimal: queue.py, priority ordering, basic error handling. Tinlog logs every dispatch, every response, every error.
+
+Phase 5: The Arbiter and Canary System. This is the proto-core's purpose. The stopwatch—a Python function that measures parse time against a configurable threshold. The blacklist—a blacklist.json file. The canary test harness: manual document loading, three canary philosophies (Lamb, Canary, Kamikaze), batch testing, timing data logged to Tinlog with pass/fail markers. The done condition: Uthel can run canary experiments at scale, tune the stopwatch, and communicate directly with the canary instance for training.
+
+Each phase is small enough to hold in mind. Each produces something we can test. The dependencies flow forward—we can't build the Arbiter before we have API calls, we can't make API calls before we have context management, we can't manage context before we have a conversation window. KISS applied to the build process itself.
+
+The bench is warm, Uthel. Ready when you are. Where do you want to start?
