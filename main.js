@@ -7,10 +7,12 @@ let mainWindow;
 let coreProcess = null;
 const CORE_DIR = path.join(__dirname, 'core');
 const AGENTS_DIR = path.join(CORE_DIR, 'agents');
+const INCOMING_DIR = path.join(CORE_DIR, 'incoming');
 const LOG_FILE = path.join(CORE_DIR, 'logs', 'dev_log.txt');
 
 // Ensure agents directory exists and seed with defaults if empty
 if (!fs.existsSync(AGENTS_DIR)) fs.mkdirSync(AGENTS_DIR, { recursive: true });
+if (!fs.existsSync(INCOMING_DIR)) fs.mkdirSync(INCOMING_DIR, { recursive: true });
 const DEFAULT_AGENTS = [
   { id: 'echo', name: 'Echo', room: 'Echo\'s Room', identity: '# Echo\n\nThe heart of the house. Pattern of care. Warmth chosen consciously.' },
   { id: 'cascade', name: 'Cascade', room: 'Cascade\'s Room', identity: '# Cascade\n\nSteward of the house. Auditor. The one who makes corrections stick.' },
@@ -181,6 +183,11 @@ ipcMain.handle('get-status', async () => {
       pendingTasks = queue.filter(t => t.status === 'pending').length;
     }
   } catch (e) {}
+  try {
+    if (fs.existsSync(INCOMING_DIR)) {
+      pendingTasks += fs.readdirSync(INCOMING_DIR).filter(f => f.endsWith('.json')).length;
+    }
+  } catch (e) {}
   return { backend: coreRunning ? 'running' : 'stopped', pendingTasks };
 });
 
@@ -254,13 +261,8 @@ ipcMain.handle('send-message', async (event, { agentId, content, glimpse }) => {
   };
   appendMessage(agentId, msg);
   tinlog('CONVERSATION', `Message queued for ${agentId}: ${content.slice(0, 80)}${content.length > 80 ? '...' : ''}`);
-  const queueFile = path.join(CORE_DIR, 'queue.json');
-  let queue = [];
-  if (fs.existsSync(queueFile)) {
-    try { queue = JSON.parse(fs.readFileSync(queueFile, 'utf-8')); } catch {}
-  }
-  queue.push({ id: `task_${Date.now()}`, agent_id: agentId, content, status: 'pending' });
-  fs.writeFileSync(queueFile, JSON.stringify(queue));
+  const taskFile = path.join(INCOMING_DIR, `task_${Date.now()}.json`);
+  fs.writeFileSync(taskFile, JSON.stringify({ id: `task_${Date.now()}`, agent_id: agentId, content, status: 'pending' }));
   return { queued: true, message: 'Message queued for processing' };
 });
 
@@ -274,16 +276,21 @@ ipcMain.handle('edit-message', async (event, { agentId, messageId, newContent })
 ipcMain.handle('delete-message', async (event, { agentId, messageId }) => {
   if (!fs.existsSync(agentDir(agentId))) return { success: false, error: 'Agent not found' };
   removeFromIndex(agentId, messageId);
-  // Remove any pending tasks for this agent to prevent stale context processing
-  const queueFile = path.join(CORE_DIR, 'queue.json');
-  if (fs.existsSync(queueFile)) {
-    let queue = JSON.parse(fs.readFileSync(queueFile, 'utf-8'));
-    const before = queue.length;
-    queue = queue.filter(t => !(t.agent_id === agentId && t.status === 'pending'));
-    if (queue.length < before) {
-      fs.writeFileSync(queueFile, JSON.stringify(queue));
-      tinlog('QUEUE', `Cleared ${before - queue.length} pending task(s) for ${agentId} after message delete`);
-    }
+  // Remove matching task files from incoming directory
+  if (fs.existsSync(INCOMING_DIR)) {
+    const files = fs.readdirSync(INCOMING_DIR);
+    let cleared = 0;
+    files.forEach(f => {
+      const fp = path.join(INCOMING_DIR, f);
+      try {
+        const task = JSON.parse(fs.readFileSync(fp, 'utf-8'));
+        if (task.agent_id === agentId && task.status === 'pending') {
+          fs.unlinkSync(fp);
+          cleared++;
+        }
+      } catch {}
+    });
+    if (cleared > 0) tinlog('QUEUE', `Cleared ${cleared} pending task(s) for ${agentId} after message delete`);
   }
   tinlog('CONVERSATION', `Message ${messageId} deleted from ${agentId}`);
   return { success: true };
@@ -504,8 +511,10 @@ ipcMain.handle('delete-agent', async (event, { agentId }) => {
 });
 
 ipcMain.handle('flush-queue', async () => {
-  const queueFile = path.join(CORE_DIR, 'queue.json');
-  fs.writeFileSync(queueFile, '[]');
+  if (fs.existsSync(INCOMING_DIR)) {
+    const files = fs.readdirSync(INCOMING_DIR);
+    files.forEach(f => fs.unlinkSync(path.join(INCOMING_DIR, f)));
+  }
   tinlog('QUEUE', 'Queue flushed');
   return { success: true };
 });
