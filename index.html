@@ -1,2410 +1,1196 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Overtone</title>
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <style>
-    :root {
-      --bg: #0a0014;
-      --surface: #1a0a2e;
-      --primary: #9b59b6;
-      --gold: #d4af37;
-      --text: #e0d8f0;
-      --text-dim: #a090b0;
-      --border: #2a1a3e;
-      --slider-track: #2a1a3e;
-      --slider-thumb: #d4af37;
-      --cell-off: #111;
-      --cell-on: #d4af37;
-      --white-key: #f5f0e8;
-      --black-key: #2a1a3e;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      display: flex;
-      height: 100vh;
-      user-select: none;
-    }
-    #root {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-      height: 100%;
-    }
-    button {
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 0.5rem 1rem;
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: background 0.2s;
-    }
-    button:hover { background: #af6fcf; }
-    button.secondary {
-      background: var(--surface);
-      border: 1px solid var(--border);
-    }
-    button.gold {
-      background: var(--gold);
-      color: #0a0014;
-      font-weight: bold;
-    }
-    button.danger {
-      background: #5a1a1a;
-      border: 1px solid #8a2a2a;
-    }
-    input[type="range"] {
-      width: 100%;
-      -webkit-appearance: none;
-      background: transparent;
-    }
-    input[type="range"]::-webkit-slider-runnable-track {
-      height: 6px;
-      background: var(--slider-track);
-      border-radius: 3px;
-    }
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: var(--slider-thumb);
-      cursor: pointer;
-      margin-top: -5px;
-    }
-    input[type="number"], select, input[type="text"] {
-      background: var(--surface);
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 0.3rem;
-      font-size: 0.9rem;
-    }
-    canvas {
-      background: #000;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-    }
-    .app-layout {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-    }
-    .sidebar {
-      width: 260px;
-      background: var(--surface);
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      padding: 1rem;
-      gap: 1rem;
-      overflow-y: auto;
-    }
-    .sidebar-bottom {
-      margin-top: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      padding-top: 1rem;
-      border-top: 1px solid var(--border);
-    }
-    .sidebar h2 {
-      color: var(--gold);
-      font-size: 1.2rem;
-      margin: 0;
-    }
-    .sound-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.3rem 0.5rem;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .sound-item:hover { background: #2a1a3e; }
-    .sound-item.selected { background: #2a1a3e; color: var(--gold); }
-    .sound-item button {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text-dim);
-      font-size: 0.8rem;
-      padding: 0.2rem 0.4rem;
-    }
-    .main-area {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .transport-bar {
-      height: 50px;
-      min-height: 50px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      padding: 0 1rem;
-      gap: 1rem;
-    }
-    .step-indicator {
-      display: flex;
-      gap: 4px;
-      align-items: center;
-    }
-    .step-dot {
-      width: 16px;
-      height: 16px;
-      border-radius: 3px;
-      background: var(--border);
-    }
-    .step-dot.active {
-      background: var(--gold);
-    }
-    .sequencer-container {
-      flex: 1;
-      background: var(--bg);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .sequencer-toolbar {
-      padding: 0.5rem 1rem;
-      background: var(--surface);
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      border-bottom: 1px solid var(--border);
-    }
-    .sequencer-tracks {
-      flex: 1;
-      overflow-y: auto;
-      overflow-x: auto;
-    }
-    .track {
-      display: flex;
-      align-items: center;
-      height: 40px;
-      width: max-content;
-      min-width: 100%;
-      border-bottom: 1px solid #1a1a2e;
-    }
-    .track-label {
-      width: 140px;
-      flex-shrink: 0;
-      padding: 0 1rem;
-      font-size: 0.85rem;
-      color: var(--text-dim);
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: var(--surface);
-      height: 100%;
-      border-right: 1px solid var(--border);
-    }
-    .track-label button {
-      font-size: 0.7rem;
-      padding: 0.2rem 0.4rem;
-      margin-left: auto;
-    }
-    .track-timeline {
-      flex: 1;
-      flex-shrink: 0;
-      height: 100%;
-      position: relative;
-      background: var(--bg);
-    }
-    .clip {
-      position: absolute;
-      height: 100%;
-      background: var(--primary);
-      border: 1px solid var(--gold);
-      border-radius: 3px;
-      cursor: grab;
-      display: flex;
-      align-items: center;
-      padding: 0 0.5rem;
-      font-size: 0.75rem;
-      overflow: hidden;
-      white-space: nowrap;
-      opacity: 0.8;
-      z-index: 1;
-    }
-    .clip:active { cursor: grabbing; }
-    .clip.selected {
-      opacity: 1;
-      border-width: 2px;
-      background: #7b3fa0;
-    }
-    .clip.dragging {
-      opacity: 0.5;
-      z-index: 10;
-      pointer-events: none;
-    }
-    .clip-preview {
-      position: absolute;
-      height: 100%;
-      background: rgba(212, 175, 55, 0.3);
-      border: 2px dashed var(--gold);
-      border-radius: 3px;
-      pointer-events: none;
-      z-index: 5;
-    }
-    .sequencer-step-line {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      background: var(--gold);
-      pointer-events: none;
-      z-index: 3;
-    }
-    .piano-roll-container {
-      flex: 0 0 auto;
-      height: 360px;
-      display: flex;
-      flex-direction: column;
-      background: var(--bg);
-      border-top: 1px solid var(--border);
-    }
-    .piano-roll-toolbar {
-      padding: 0.5rem 1rem;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      flex-shrink: 0;
-    }
-    .piano-roll-grid-wrapper {
-      flex: 1;
-      overflow: auto;
-      display: flex;
-      position: relative;
-    }
-    .piano-roll-resize-handle {
-      position: absolute;
-      right: -3px;
-      top: 0;
-      bottom: 0;
-      width: 6px;
-      cursor: ew-resize;
-      background: rgba(212, 175, 55, 0.1);
-      z-index: 10;
-      transition: background 0.2s;
-    }
-    .piano-roll-resize-handle:hover {
-      background: rgba(212, 175, 55, 0.4);
-    }
-    .piano-labels {
-      width: 70px;
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-    }
-    .piano-labels canvas {
-      border: none;
-      border-radius: 0;
-    }
-    .grid-scroll {
-      flex: 1;
-      overflow: visible;
-      position: relative;
-    }
-    .grid-wrapper {
-      position: relative;
-      width: fit-content;
-    }
-    .grid {
-      display: grid;
-      grid-template-rows: repeat(36, 20px);
-      width: fit-content;
-      background: var(--cell-off);
-      position: relative;
-    }
-    .cell {
-      border: 1px solid #1a1a2e;
-      transition: background 0.1s;
-    }
+<meta charset="UTF-8">
+<title>Unicode Raycaster</title>
+<!--
+  ╔══════════════════════════════════════════════════════════════════╗
+  ║  UNICODE PER-CELL RAYCASTER — skeleton / handoff document       ║
+  ╠══════════════════════════════════════════════════════════════════╣
+  ║  ARCHITECTURE OVERVIEW                                          ║
+  ║                                                                  ║
+  ║  Instead of rasterising triangles, this renderer casts one ray  ║
+  ║  per character cell. Each ray is tested against the scene in    ║
+  ║  order; the nearest hit wins. This gives correct occlusion and  ║
+  ║  solid fills without a z-buffer or painter's sort.              ║
+  ║                                                                  ║
+  ║  COORDINATE SYSTEM                                              ║
+  ║    +X = right   +Y = up   +Z = forward (into screen)           ║
+  ║    Map tiles live on the XZ plane. Y=0 is floor, Y=1 ceiling.  ║
+  ║    One tile = one world unit.                                    ║
+  ║                                                                  ║
+  ║  RENDER PIPELINE (per frame)                                    ║
+  ║    1. rebuildRayDirs() — if cam yaw/pitch changed, recompute    ║
+  ║       the full COLS×ROWS table of normalised world-space ray    ║
+  ║       directions. Cached between frames when camera is still.   ║
+  ║    2. For each cell (cx,cy):                                    ║
+  ║       a. Look up precomputed ray direction (rdx,rdy,rdz)        ║
+  ║       b. Test walls  — rayAABB vs each solid tile AABB          ║
+  ║       c. Test floor  — ray vs Y=0 plane                         ║
+  ║       d. Test ceiling — ray vs Y=1 plane                        ║
+  ║       e. Test pickup cube — ray vs spinning AABB                ║
+  ║       f. Take nearest hit; shade with diffuse+ambient+fog       ║
+  ║       g. Map brightness → character ramp; fillText to canvas    ║
+  ║                                                                  ║
+  ║  ADDING GEOMETRY                                                 ║
+  ║    • New static walls: add tiles to MAP[]                       ║
+  ║    • New AABB objects: call rayAABB in the per-cell loop,       ║
+  ║      same pattern as the pickup cube section                    ║
+  ║    • Non-axis-aligned surfaces: transform ray into object space  ║
+  ║      (see pickup cube: rotate ro/rd by -pickYaw before test,    ║
+  ║       rotate normal back by +pickYaw after)                     ║
+  ║                                                                  ║
+  ║  PERFORMANCE NOTES                                              ║
+  ║    • rayDirs is a flat Float64Array (no object allocation).     ║
+  ║    • rayAABB is fully inlined scalars — no vec3 objects.        ║
+  ║    • wallTiles is prefiltered to solid tiles only.              ║
+  ║    • ctx.font is set once per frame outside the cell loop.      ║
+  ║    • At 80×40 cells this runs comfortably at 60 fps in JS.      ║
+  ║      If adding many objects, consider a BVH or spatial grid.    ║
+  ╚══════════════════════════════════════════════════════════════════╝
+-->
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; overflow:hidden; background:#000; }
+body {
+  display:flex; align-items:center; justify-content:center;
+  flex-direction:column; font-family:'Courier New',monospace;
+}
+canvas { display:block; image-rendering:pixelated; cursor:none; }
 
-    .subdivision-lines {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 1;
-    }
-    .sub-line {
-      position: absolute;
-      top: 0;
-      height: 100%;
-      width: 1px;
-      background: var(--border);
-    }
-    .sub-line.thin {
-      opacity: 0.3;
-    }
-    .note-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 2;
-    }
-    .note-block {
-      position: absolute;
-      background: #b8860b;
-      border: 1px solid #daa520;
-      border-radius: 2px;
-      cursor: pointer;
-      pointer-events: auto;
-      transition: background 0.1s;
-    }
-    .note-block:hover {
-      background: #daa520;
-    }
-    .note-block .resize-handle {
-      position: absolute;
-      right: 0;
-      top: 0;
-      width: 6px;
-      height: 100%;
-      cursor: ew-resize;
-      background: rgba(255,255,255,0.1);
-    }
-    .note-block .resize-handle:hover {
-      background: rgba(255,255,255,0.3);
-    }
-    .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 20;
-    }
-    .modal-wrapper {
-      display: flex;
-      align-items: stretch;
-      transition: all 0.3s ease;
-    }
-    .modal {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 2rem;
-      width: 600px;
-      max-height: 90vh;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-      position: relative;
-    }
-    .modal h3 { margin: 0; color: var(--gold); }
-    .panel-toggle {
-      width: 20px;
-      flex-shrink: 0;
-      align-self: center;
-      height: 48px;
-      background: var(--primary);
-      border: 1px solid var(--border);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 1.2rem;
-      z-index: 2;
-      transition: background 0.2s;
-    }
-    .panel-toggle:hover { background: #af6fcf; }
-    .panel-toggle.left {
-      border-radius: 4px 0 0 4px;
-    }
-    .panel-toggle.right {
-      border-radius: 0 4px 4px 0;
-    }
-    .effects-toggle {
-      width: 20px;
-      flex-shrink: 0;
-      align-self: center;
-      height: 48px;
-      background: var(--primary);
-      border: 1px solid var(--border);
-      border-radius: 0 4px 4px 0;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 1.2rem;
-      z-index: 2;
-      transition: background 0.2s;
-    }
-    .effects-toggle:hover { background: #af6fcf; }
-    .effects-panel {
-      background: var(--surface);
-      border: none;
-      border-radius: 0 8px 8px 0;
-      width: 0;
-      overflow: hidden;
-      transition: width 0.3s ease, padding 0.3s ease;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-    .effects-panel.open {
-      border: 1px solid var(--border);
-      border-left: none;
-      width: 380px;
-      padding: 1.5rem;
-      overflow-y: auto;
-    }
-    .lfo-panel {
-      background: var(--surface);
-      border: none;
-      border-radius: 0;
-      width: 0;
-      overflow: hidden;
-      transition: width 0.3s ease, padding 0.3s ease;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-    .lfo-panel.open {
-      border: 1px solid var(--border);
-      border-right: none;
-      border-radius: 8px 0 0 8px;
-      width: 280px;
-      padding: 1.5rem;
-      overflow-y: auto;
-    }
-    .effect-row {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 0.75rem;
-    }
-    .effect-row label {
-      font-size: 0.85rem;
-      color: var(--text-dim);
-      min-width: 70px;
-    }
-    .effect-row input[type="range"] {
-      flex: 1;
-    }
-    .effect-row input[type="number"] {
-      width: 65px;
-    }
-    .synth-grid {
-      display: grid;
-      grid-template-columns: 120px 1fr 80px;
-      align-items: center;
-      gap: 0.5rem 1rem;
-    }
-    .synth-grid label { font-size: 0.9rem; color: var(--text-dim); }
-    .waveform-preview { display: flex; justify-content: center; }
+#crosshair {
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  color:#ffffff44; font-size:16px;
+  pointer-events:none; user-select:none;
+}
 
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: var(--bg); }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--slider-thumb); }
-  </style>
+#hud-root {
+  position:absolute; bottom:0; left:0; right:0;
+  display:flex; flex-direction:column; align-items:center;
+  pointer-events:none; z-index:10;
+  font-family:'Courier New',monospace; color:#ccc;
+  padding-bottom:8px;
+}
+.hud-bars {
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+}
+.combat-log {
+  position:absolute; bottom:8px; left:8px;
+  width:300px; height:80px; overflow-y:auto;
+  background:rgba(0,0,0,0.6); padding:4px 8px; border-radius:4px;
+  font-size:11px; line-height:1.3; color:#ccc;
+  pointer-events:none; z-index:10;
+  font-family:'Courier New',monospace;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.combat-log::-webkit-scrollbar { display: none; }
+.hud-bar-container {
+  display:flex; align-items:center; gap:8px; margin-bottom:4px;
+  background:rgba(0,0,0,0.6); padding:4px 10px; border-radius:4px;
+}
+.hud-bar-label { font-size:12px; width:60px; text-align:right; }
+.hud-bar-bg { width:200px; height:14px; background:#222; border:1px solid #444; }
+.hud-bar-fill { height:100%; width:0%; }
+.hud-bar-text { font-size:10px; color:#aaa; margin-left:4px; }
+.combat-log {
+  width:400px; height:100px; overflow-y:auto;
+  background:rgba(0,0,0,0.6); padding:4px 8px; border-radius:4px;
+  font-size:11px; line-height:1.3; margin-top:6px;
+}
+</style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="text/babel">
-    const { useState, useRef, useEffect, useCallback, useMemo, createContext, useContext } = React;
+<canvas id="c"></canvas>
+<div id="hud-root"></div>
+<div id="crosshair">+</div>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script>
 
-    // ---------- Constants ----------
-    const PITCHES = ['C3','C#3','D3','D#3','E3','F3','F#3','G3','G#3','A3','A#3','B3','C4','C#4','D4','D#4','E4','F4','F#4','G4','G#4','A4','A#4','B4','C5','C#5','D5','D#5','E5','F5','F#5','G5','G#5','A5','A#5','B5'];
-    const PITCH_ROOTS = new Set(['C3','D3','E3','F3','G3','A3','B3','C4','D4','E4','F4','G4','A4','B4','C5','D5','E5','F5','G5','A5','B5']);
-    const SHARPS = new Set(['C#3','D#3','F#3','G#3','A#3','C#4','D#4','F#4','G#4','A#4','C#5','D#5','F#5','G#5','A#5']);
-    const STEPS = 16;
-    const SUBDIVISIONS = 4;          // 64th notes per 16th-note cell
-    const TOTAL_TICKS = STEPS * SUBDIVISIONS;
-    const TICK_WIDTH = 10;           // pixels per 64th-note tick
-    const CELL_WIDTH = TICK_WIDTH * SUBDIVISIONS; // 40px per grid cell
-    const STEP_WIDTH = 20;
-    const freqFromPitch = (p) => 440 * Math.pow(2, (PITCHES.indexOf(p) - PITCHES.indexOf('A4')) / 12);
+// ═══════════════════════════════════════════════════════════════════
+//  CHARACTER GRID
+//  The canvas is divided into COLS×ROWS cells, each CW×CH pixels.
+//  CW and CH must match the actual monospace glyph dimensions —
+//  CELL_ASPECT (CW/CH) corrects for non-square cells in projection.
+// ═══════════════════════════════════════════════════════════════════
+const canvas  = document.getElementById('c');
+const ctx     = canvas.getContext('2d');
 
-    // ---------- Audio Engine ----------
-    class AudioEngine {
-      constructor() { this.ctx = null; this.masterGain = null; }
-      getContext() {
-        if (!this.ctx) {
-          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-          this.masterGain = this.ctx.createGain();
-          this.masterGain.gain.value = 0.8;
-          this.masterGain.connect(this.ctx.destination);
-        }
-        if (this.ctx.state === 'suspended') this.ctx.resume();
-        return this.ctx;
-      }
-      setMasterVolume(value) {
-        if (this.masterGain) this.masterGain.gain.value = value / 100;
+const COLS = 80;   // character columns
+const ROWS = 40;   // character rows
+const CW   = 13;   // cell pixel width  (tune to match your font)
+const CH   = 20;   // cell pixel height (tune to match your font)
+
+canvas.width  = COLS * CW;
+canvas.height = ROWS * CH;
+ctx.textBaseline = 'top';
+
+// ═══════════════════════════════════════════════════════════════════
+//  CHARACTER BRIGHTNESS RAMP
+//  Index 0 = brightest (densest ink), last index = darkest (space).
+//  ramp(b) maps a brightness value [0..1] to a character.
+//  Duplicate entries intentionally widen certain brightness bands.
+// ═══════════════════════════════════════════════════════════════════
+const RAMP = ['█','▓','▓','▒','▒','░','·',' '];
+
+function ramp(b) {
+  b = Math.max(0, Math.min(1, b));
+  return RAMP[Math.floor((1 - b) * (RAMP.length - 1))];
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  MATH HELPERS
+//  All hot-path math uses flat scalar arguments to avoid allocating
+//  {x,y,z} objects in the inner loop. Results are written into
+//  pre-allocated Float64Arrays (out[]).
+// ═══════════════════════════════════════════════════════════════════
+
+// Dot product of two 3-vectors passed as scalars.
+function dot3(ax,ay,az, bx,by,bz) {
+  return ax*bx + ay*by + az*bz;
+}
+
+// Rotate vector (x,y,z) around the Y axis by angle a.
+// Writes result into out[0..2].
+function rotY3(x,y,z, a, out) {
+  const c=Math.cos(a), s=Math.sin(a);
+  out[0] = x*c + z*s;
+  out[1] = y;
+  out[2] = -x*s + z*c;
+}
+
+// Rotate vector (x,y,z) around the X axis by angle a.
+// Writes result into out[0..2].
+function rotX3(x,y,z, a, out) {
+  const c=Math.cos(a), s=Math.sin(a);
+  out[0] = x;
+  out[1] = y*c - z*s;
+  out[2] = y*s + z*c;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  RAY–AABB INTERSECTION  (slab method, fully inlined)
+//
+//  Tests a ray (origin rox,roy,roz + t*direction rdx,rdy,rdz)
+//  against an axis-aligned bounding box [bmin, bmax].
+//
+//  Returns tNear (distance to hit, > 0) or -1 on miss.
+//  On hit, writes the outward face normal into nOut[0..2].
+//
+//  How it works: each axis-aligned pair of planes defines a "slab".
+//  The ray is inside all three slabs simultaneously over [tNear,tFar].
+//  tNear = max of all slab entry distances (last slab entered).
+//  tFar  = min of all slab exit  distances (first slab exited).
+//  Hit if tNear <= tFar and the interval is in front of the ray.
+//  The normal belongs to the axis whose slab was entered last (tNear).
+// ═══════════════════════════════════════════════════════════════════
+const nOut = new Float64Array(3); // shared normal output — written per hit
+
+function rayAABB(rox,roy,roz, rdx,rdy,rdz,
+                 bminx,bminy,bminz, bmaxx,bmaxy,bmaxz,
+                 nOut) {
+  let tNear=-1e38, tFar=1e38, hAxis=0, hSign=1;
+
+  // X slab
+  let invD=1/rdx, t0=(bminx-rox)*invD, t1=(bmaxx-rox)*invD, sg=1;
+  if(invD<0){ let tmp=t0; t0=t1; t1=tmp; sg=-1; }
+  if(t0>tNear){ tNear=t0; hAxis=0; hSign=sg; }
+  tFar=Math.min(tFar,t1);
+  if(tNear>tFar) return -1;
+
+  // Y slab
+  invD=1/rdy; t0=(bminy-roy)*invD; t1=(bmaxy-roy)*invD; sg=1;
+  if(invD<0){ let tmp=t0; t0=t1; t1=tmp; sg=-1; }
+  if(t0>tNear){ tNear=t0; hAxis=1; hSign=sg; }
+  tFar=Math.min(tFar,t1);
+  if(tNear>tFar) return -1;
+
+  // Z slab
+  invD=1/rdz; t0=(bminz-roz)*invD; t1=(bmaxz-roz)*invD; sg=1;
+  if(invD<0){ let tmp=t0; t0=t1; t1=tmp; sg=-1; }
+  if(t0>tNear){ tNear=t0; hAxis=2; hSign=sg; }
+  tFar=Math.min(tFar,t1);
+  if(tNear>tFar) return -1;
+
+  if(tFar < 1e-4) return -1; // box entirely behind ray origin
+
+  // Build outward normal: the axis that produced tNear, sign away from ray
+  nOut[0]=0; nOut[1]=0; nOut[2]=0;
+  nOut[hAxis] = -hSign;
+  return tNear;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  TILE MAP
+//  16×16 grid. 1 = solid wall, 0 = open floor.
+//  Tiles sit on the XZ plane; each is 1×1 world units wide.
+//  Walls are extruded from Y=0 (floor) to Y=1 (ceiling).
+//
+//  To expand the map: change MAP_W/MAP_H and update the MAP array.
+//  Solid tiles are precomputed into wallTiles[] at startup.
+// ═══════════════════════════════════════════════════════════════════
+let MAP_W = 32, MAP_H = 32;
+let MAP = [];
+
+function generateDungeon() {
+  MAP = new Array(MAP_W * MAP_H).fill(1);
+  const rooms = [];
+  const maxRooms = 12;
+  for (let i = 0; i < 200; i++) {
+    const rw = 4 + Math.floor(Math.random() * 6);
+    const rh = 4 + Math.floor(Math.random() * 6);
+    const rx = 1 + Math.floor(Math.random() * (MAP_W - rw - 2));
+    const rz = 1 + Math.floor(Math.random() * (MAP_H - rh - 2));
+    let overlap = false;
+    for (const room of rooms) {
+      if (rx < room.x + room.w + 1 && rx + rw + 1 > room.x &&
+          rz < room.z + room.h + 1 && rz + rh + 1 > room.z) {
+        overlap = true;
+        break;
       }
     }
+    if (!overlap) {
+      rooms.push({ x: rx, z: rz, w: rw, h: rh, cx: Math.floor(rx + rw/2), cz: Math.floor(rz + rh/2) });
+      for (let tx = rx; tx < rx + rw; tx++)
+        for (let tz = rz; tz < rz + rh; tz++)
+          MAP[tz * MAP_W + tx] = 0;
+      if (rooms.length >= maxRooms) break;
+    }
+  }
+  for (let i = 1; i < rooms.length; i++) {
+    const a = rooms[i-1], b = rooms[i];
+    let cx = a.cx, cz = a.cz;
+    while (cx !== b.cx) {
+      MAP[cz * MAP_W + cx] = 0;
+      cx += cx < b.cx ? 1 : -1;
+    }
+    while (cz !== b.cz) {
+      MAP[cz * MAP_W + cx] = 0;
+      cz += cz < b.cz ? 1 : -1;
+    }
+  }
+  if (rooms.length === 0) rooms.push({ x: 2, z: 2, w: 6, h: 6, cx: 5, cz: 5 });
+  const spawnRoom = rooms[Math.floor(Math.random() * rooms.length)];
+  return { x: spawnRoom.cx + 0.5, z: spawnRoom.cz + 0.5 };
+}
 
-    // ---------- Synth Voice Pool ----------
-    class SynthVoicePool {
-      constructor(ctx, engine, config, size = 8) {
-        this.ctx = ctx;
-        this.engine = engine;
-        this.config = config;
-        this.size = size;
-        this.voices = [];
-        this.nextIndex = 0;
-        for (let i = 0; i < size; i++) {
-          this.voices.push(new SynthVoice(ctx, config, false)); // owned by pool
-          this.voices[i].engine = engine;
-        }
-      }
+// Returns true if tile (tx, tz) is solid (or out of bounds).
+function solid(tx, tz) {
+  if(tx<0 || tz<0 || tx>=MAP_W || tz>=MAP_H) return true;
+  return MAP[tz * MAP_W + tx] === 1;
+}
 
-      getVoice() {
-        // Look for an idle voice first
-        for (const v of this.voices) {
-          if (!v.active) return v;
-        }
-        // Steal the oldest active voice
-        const oldest = this.voices[this.nextIndex];
-        oldest.release();
-        this.nextIndex = (this.nextIndex + 1) % this.size;
-        return oldest;
-      }
+// Precompute all solid tiles as [bminX,bminY,bminZ, bmaxX,bmaxY,bmaxZ].
+// This avoids recomputing tile bounds inside the hot render loop.
+let wallTiles = [];
+function rebuildWallTiles() {
+  wallTiles = [];
+  for(let tz=0; tz<MAP_H; tz++)
+    for(let tx=0; tx<MAP_W; tx++)
+      if(MAP[tz*MAP_W+tx]===1)
+        wallTiles.push([tx,0,tz, tx+1,1,tz+1]);
+}
 
-      updateConfig(config) {
-        this.config = config;
-        for (const v of this.voices) {
-          if (!v.active) v.config = config;
-        }
-      }
+// ── Player state (shared with React HUD) ──
+let playerHealth = 100, playerMaxHealth = 100;
+let playerMana = 50, playerMaxMana = 50;
+let playerShield = 0;
+let maxShield = 0;
+let combatLog = [];
+let playerDead = false;
+let floorLevel = 1;
+let playerAttackCooldown = 0;
+const ATTACK_COOLDOWN = 0.4;
+const BASE_ATTACK_DAMAGE = 20;
+const ATTACK_RANGE = 10;
+let setPlayerState = null;
 
-      releaseAll() {
-        for (const v of this.voices) {
-          v.release();
-        }
+function resetGame() {
+  playerHealth = 100; playerMaxHealth = 100;
+  playerMana = 50; playerMaxMana = 50;
+  combatLog = [];
+  playerDead = false;
+  const sp = generateDungeon();
+  rebuildWallTiles();
+  cam.x = sp.x; cam.z = sp.z; cam.yaw = 0; cam.pitch = 0;
+  enemies.length = 0;
+  spawnEnemies();
+  addCombatMessage('You have entered the Monospace.');
+}
+
+function addCombatMessage(msg) {
+  combatLog = [...combatLog.slice(-19), msg]; // keep last 20
+  if (setPlayerState) setPlayerState({ health: playerHealth, maxHealth: playerMaxHealth, mana: playerMana, maxMana: playerMaxMana, shield: playerShield, maxShield, warding: playerWarding, log: combatLog, inventory: [...inventory], equipment: {...equipment}, attackDamage, lifesteal: playerLifesteal, frostChance: playerFrostChance, echoChance: playerEchoChance, fireDamage: playerFireDamage, critChance: playerCritChance, manaOnHit: playerManaOnHit, thorns: playerThorns, xpGain: playerXpGain, paralyzeChance: playerParalyzeChance, playerSpeed: (SPEED + (recalcStats._speedBonus||0)).toFixed(1) });
+}
+function updateHUD() {
+  if (setPlayerState) setPlayerState({ health: playerHealth, maxHealth: playerMaxHealth, mana: playerMana, maxMana: playerMaxMana, shield: playerShield, maxShield, warding: playerWarding, log: combatLog, inventory: [...inventory], equipment: {...equipment}, attackDamage, lifesteal: playerLifesteal, frostChance: playerFrostChance, echoChance: playerEchoChance, fireDamage: playerFireDamage, critChance: playerCritChance, manaOnHit: playerManaOnHit, thorns: playerThorns, xpGain: playerXpGain, paralyzeChance: playerParalyzeChance, playerSpeed: (SPEED + (recalcStats._speedBonus||0)).toFixed(1) });
+}
+
+// ── Enemy system ──
+const enemies = [];
+const ENEMY_RADIUS = 0.15;
+const ENEMY_ATTACK_RANGE = 1.5;
+const ITEM_HALF = 0.1;
+const PICKUP_RANGE = 0.5;
+const items = [];
+const inventory = [];
+const equipment = { weapon: null, head: null, chest: null, gloves: null, pants: null, belt: null, boots: null, amulet: null, ring: null };
+let attackDamage = BASE_ATTACK_DAMAGE;
+
+const AFFIXES = [
+  { prefix:'Vital', suffix:'of Vigour', stat:'health', min:3, max:8 },
+  { prefix:'Empowered', suffix:'of Power', stat:'damage', min:2, max:5 },
+  { prefix:'Focused', suffix:'of Focus', stat:'mana', min:2, max:6 },
+  { prefix:'Swift', suffix:'of Swiftness', stat:'speed', min:0.1, max:0.3 },
+  { prefix:'Vampiric', suffix:'of Leeching', stat:'lifesteal', min:5, max:15 },
+  { prefix:'Frostbitten', suffix:'of Frost', stat:'frostChance', min:10, max:25 },
+  { prefix:'Echoing', suffix:'of Echoes', stat:'echoChance', min:10, max:25 },
+  { prefix:'Shielding', suffix:'of Shielding', stat:'warding', min:5, max:20 },
+  { prefix:'Igniting', suffix:'of Ignition', stat:'fireDamage', min:3, max:8 },
+  { prefix:'Keen', suffix:'of Criticals', stat:'critChance', min:5, max:15 },
+  { prefix:'Sapping', suffix:'of Draining', stat:'manaOnHit', min:2, max:6 },
+  { prefix:'Barbed', suffix:'of Thorns', stat:'thorns', min:5, max:15 },
+  { prefix:'Learning', suffix:'of Enlightenment', stat:'xpGain', min:5, max:15 },
+  { prefix:'Shocking', suffix:'of Paralysis', stat:'paralyzeChance', min:10, max:25 }
+];
+const SLOT_NAMES = { weapon:'Blade', head:'Helm', chest:'Plate', gloves:'Gauntlets', pants:'Pantaloons', belt:'Girdle', boots:'Greaves', amulet:'Amulet', ring:'Band' };
+const RARITY_COLORS = { common: '#888', uncommon: '#33cc33', rare: '#3366cc', epic: '#cc33cc' };
+const RARITY_MULTS = { common: 1.0, uncommon: 1.4, rare: 1.9, epic: 2.5 };
+const ITEM_TYPES = [
+  { name:'Vitality Shard', stat:'health', baseValue:12, color:'#33cc33', slot:'chest' },
+  { name:'Power Shard', stat:'damage', baseValue:6, color:'#cc3333', slot:'weapon' },
+  { name:'Focus Shard', stat:'mana', baseValue:8, color:'#3366cc', slot:'head' },
+  { name:'Swift Shard', stat:'speed', baseValue:0.2, color:'#cccc33', slot:'boots' },
+  { name:'Iron Shard', stat:'health', baseValue:6, color:'#888888', slot:'gloves' },
+  { name:'Stone Shard', stat:'health', baseValue:10, color:'#666666', slot:'belt' },
+  { name:'Silk Shard', stat:'mana', baseValue:6, color:'#cc66cc', slot:'pants' },
+  { name:'Star Shard', stat:'mana', baseValue:10, color:'#66cccc', slot:'amulet' },
+  { name:'Fate Shard', stat:'damage', baseValue:4, color:'#cc6666', slot:'ring' }
+];
+
+let playerLifesteal = 0, playerFrostChance = 0, playerEchoChance = 0, playerWarding = 0;
+let playerFireDamage = 0, playerCritChance = 0, playerManaOnHit = 0, playerThorns = 0;
+let playerXpGain = 0, playerParalyzeChance = 0;
+function recalcStats() {
+  let bonusH = 0, bonusM = 0, bonusD = 0;
+  let bonusSpeed = 0;
+  let bonusShield = 0;
+  playerLifesteal = 0; playerFrostChance = 0; playerEchoChance = 0; playerWarding = 0;
+  playerFireDamage = 0; playerCritChance = 0; playerManaOnHit = 0; playerThorns = 0;
+  playerXpGain = 0; playerParalyzeChance = 0;
+  for (const item of Object.values(equipment)) {
+    if (!item) continue;
+    // base stat
+    if (item.type.stat === 'health') bonusH += item.type.value;
+    else if (item.type.stat === 'mana') bonusM += item.type.value;
+    else if (item.type.stat === 'damage') bonusD += item.type.value;
+    else if (item.type.stat === 'speed') bonusSpeed += item.type.value;
+    // affix stats
+    if (item.affixes) {
+      for (const aff of item.affixes) {
+        if (aff.stat === 'health') bonusH += aff.value;
+        else if (aff.stat === 'mana') bonusM += aff.value;
+        else if (aff.stat === 'damage') bonusD += aff.value;
+        else if (aff.stat === 'speed') bonusSpeed += aff.value;
+        else if (aff.stat === 'lifesteal') playerLifesteal += aff.value;
+        else if (aff.stat === 'frostChance') playerFrostChance += aff.value;
+        else if (aff.stat === 'echoChance') playerEchoChance += aff.value;
+        else if (aff.stat === 'warding') { bonusShield += aff.value; playerWarding += aff.value; }
+        else if (aff.stat === 'fireDamage') playerFireDamage += aff.value;
+        else if (aff.stat === 'critChance') playerCritChance += aff.value;
+        else if (aff.stat === 'manaOnHit') playerManaOnHit += aff.value;
+        else if (aff.stat === 'thorns') playerThorns += aff.value;
+        else if (aff.stat === 'xpGain') playerXpGain += aff.value;
+        else if (aff.stat === 'paralyzeChance') playerParalyzeChance += aff.value;
       }
     }
+  }
+  playerMaxHealth = 100 + bonusH;
+  playerMaxMana = 50 + bonusM;
+  playerHealth = Math.min(playerHealth, playerMaxHealth);
+  playerMana = Math.min(playerMana, playerMaxMana);
+  attackDamage = BASE_ATTACK_DAMAGE + bonusD;
+  maxShield = Math.floor(playerMaxHealth * 0.5);
+  if (playerShield > maxShield) playerShield = maxShield;
+  recalcStats._speedBonus = bonusSpeed;
+}
 
-    // ---------- Sample Voice (for imported audio clips) ----------
-    class SampleVoice {
-      constructor(ctx) {
-        this.ctx = ctx;
-        this.active = false;
-        this.source = null;
-      }
-      play(buffer, freq, startTime, duration) {
-        if (this.active) this.release();
-        this.active = true;
-        const source = this.ctx.createBufferSource();
-        source.buffer = buffer;
-        // Calculate playbackRate to shift pitch: relative to original pitch (assume original maps to A4 = 440Hz)
-        // We'll assume the original sample is at A4 (440Hz), and target freq given.
-        source.playbackRate.value = freq / 440;
-        const now = startTime;
-        source.start(now, 0, Math.min(duration, buffer.duration));
-        source.onended = () => { this.active = false; };
-        // Connect to a gain node for simple volume (optional)
-        const gainNode = this.ctx.createGain();
-        gainNode.gain.value = 0.8;
-        source.connect(gainNode);
-        gainNode.connect(this.engine?.masterGain || this.ctx.destination);
-        this.source = source;
-        this.gainNode = gainNode;
-      }
-      release() {
-        if (!this.active) return;
-        try { this.source.stop(); } catch(e) {}
-        this.source.disconnect();
-        this.gainNode.disconnect();
-        this.active = false;
+function equipItem(invIndex) {
+  const item = inventory[invIndex];
+  if (!item) return;
+  const slot = item.type.slot || 'accessory';
+  // Unequip current item in that slot first
+  if (equipment[slot]) {
+    inventory.push(equipment[slot]);
+  }
+  equipment[slot] = item;
+  inventory.splice(invIndex, 1);
+  recalcStats();
+  addCombatMessage(`Equipped ${item.type.name}.`);
+}
+
+function unequipItem(slot) {
+  const item = equipment[slot];
+  if (!item) return;
+  inventory.push(item);
+  equipment[slot] = null;
+  recalcStats();
+  addCombatMessage(`Unequipped ${item.type.name}.`);
+}
+
+function spawnItems() {
+  items.length = 0;
+  const count = 8;
+  for (let i = 0; i < 200; i++) {
+    const tx = 1 + Math.floor(Math.random() * (MAP_W - 2));
+    const tz = 1 + Math.floor(Math.random() * (MAP_H - 2));
+    if (!solid(tx, tz)) {
+      const dist = Math.hypot(cam.x - (tx+0.5), cam.z - (tz+0.5));
+      if (dist > 3) {
+        const tmpl = ITEM_TYPES[Math.floor(Math.random() * ITEM_TYPES.length)];
+        const rarityRoll = Math.random();
+        let rarity, rarityMult;
+        if (rarityRoll < 0.05) { rarity = 'epic'; rarityMult = RARITY_MULTS.epic; }
+        else if (rarityRoll < 0.20) { rarity = 'rare'; rarityMult = RARITY_MULTS.rare; }
+        else if (rarityRoll < 0.50) { rarity = 'uncommon'; rarityMult = RARITY_MULTS.uncommon; }
+        else { rarity = 'common'; rarityMult = RARITY_MULTS.common; }
+        const rawVal = tmpl.baseValue * rarityMult * (1 + (floorLevel - 1) * 0.1);
+        const value = tmpl.stat === 'speed' ? Math.round(rawVal * 10) / 10 : Math.round(rawVal);
+        const type = { ...tmpl, value, rarity };
+        const affixes = [];
+        const affixCount = Math.random() < 0.3 ? 2 : (Math.random() < 0.6 ? 1 : 0);
+        let itemName = SLOT_NAMES[tmpl.slot] || tmpl.name;
+        for (let a = 0; a < affixCount; a++) {
+          const aff = AFFIXES[Math.floor(Math.random() * AFFIXES.length)];
+          const affRaw = (aff.min + Math.random() * (aff.max - aff.min)) * rarityMult * (1 + (floorLevel - 1) * 0.05);
+          const affValue = aff.stat === 'speed' ? Math.round(affRaw * 10) / 10 : Math.round(affRaw);
+          affixes.push({ prefix: aff.prefix, suffix: aff.suffix, stat: aff.stat, value: affValue });
+        }
+        if (affixes.length > 0) {
+          const prefAff = affixes[0];
+          const suffAff = affixes.length > 1 ? affixes[1] : affixes[0];
+          itemName = `${prefAff.prefix} ${SLOT_NAMES[tmpl.slot] || tmpl.name} ${suffAff.suffix}`;
+        }
+        items.push({ x: tx + 0.5, z: tz + 0.5, type, affixes, name: itemName, half: ITEM_HALF, bobPhase: Math.random() * Math.PI * 2 });
+        if (items.length >= count) break;
       }
     }
+  }
+}
+const CHASE_RANGE = 6.0;
+const ENEMY_SPEED = 1.2;
+const ENEMY_DAMAGE = 8;
 
-    class SampleVoicePool {
-      constructor(ctx, engine, buffer, size = 4) {
-        this.ctx = ctx;
-        this.engine = engine;
-        this.buffer = buffer;
-        this.voices = [];
-        this.nextIndex = 0;
-        for (let i = 0; i < size; i++) {
-          const v = new SampleVoice(ctx);
-          v.engine = engine;
-          this.voices.push(v);
-        }
+function spawnEnemies() {
+  enemies.length = 0;
+  const count = 5;
+  for (let i = 0; i < 200; i++) {
+    const tx = 1 + Math.floor(Math.random() * (MAP_W - 2));
+    const tz = 1 + Math.floor(Math.random() * (MAP_H - 2));
+    if (!solid(tx, tz)) {
+      const dist = Math.hypot(cam.x - (tx+0.5), cam.z - (tz+0.5));
+      if (dist > 4) {
+        enemies.push({ x: tx + 0.5, z: tz + 0.5, yaw: Math.random() * Math.PI * 2, speed: Math.random() * 1.5 + 0.8, bobPhase: Math.random() * Math.PI * 2, health: 40, maxHealth: 40, damageTimer: 0, burnTimer: 0, burnDamage: 0, paralyzedTimer: 0 });
+        if (enemies.length >= count) break;
       }
-      getVoice() {
-        for (const v of this.voices) if (!v.active) return v;
-        const oldest = this.voices[this.nextIndex];
-        oldest.release();
-        this.nextIndex = (this.nextIndex + 1) % this.voices.length;
-        return oldest;
-      }
-      releaseAll() { for (const v of this.voices) v.release(); }
     }
+  }
+}
 
-    // ---------- Synth Voice ----------
-    class SynthVoice {
-      constructor(ctx, config, autoConnect = true) {
-        this.ctx = ctx;
-        this.config = config;
-        this.active = false;
-        this.autoConnect = autoConnect;
-        this._releaseCallbacks = [];
+function updateEnemies(dt) {
+  for (const e of enemies) {
+    if (e.paralyzedTimer > 0) {
+      e.paralyzedTimer -= dt;
+      continue; // frozen, no movement or attack
+    }
+    const dx = cam.x - e.x, dz = cam.z - e.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist < CHASE_RANGE && dist > 1.5) {
+      const nx = dx / dist, nz = dz / dist;
+      e.x += nx * ENEMY_SPEED * dt;
+      e.z += nz * ENEMY_SPEED * dt;
+      if (!solid(Math.floor(e.x), Math.floor(e.z))) continue;
+      e.x -= nx * ENEMY_SPEED * dt;
+      e.z -= nz * ENEMY_SPEED * dt;
+    }
+  }
+  // Burn damage
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const e = enemies[i];
+    if (e.burnTimer > 0) {
+      e.burnTimer -= dt;
+      e.health -= e.burnDamage * dt;
+      if (e.health <= 0) {
+        addCombatMessage('Crystal burns away!');
+        enemies.splice(i, 1);
       }
-      play(freq, startTime, duration) {
-        if (this.active) this.release();
-        this.active = true;
-        const { type='sine', filterType='lowpass', cutoff=1000, resonance=0, attack=0.01, decay=0.1, sustain=0.6, release=0.3, gain=0.3, effects={} } = this.config;
-        const now = startTime;
-        const susStart = now + attack + decay;
-        const noteOff = now + duration;
+    }
+  }
+}
 
-        const osc = this.ctx.createOscillator();
-        const filter = this.ctx.createBiquadFilter();
-        const envGain = this.ctx.createGain();
-        osc.type = type;
-        osc.frequency.value = freq;
-        filter.type = filterType;
-        filter.frequency.value = cutoff;
-        filter.Q.value = resonance;
-        envGain.gain.setValueAtTime(0, now);
-        envGain.gain.linearRampToValueAtTime(gain, now + attack);
-        envGain.gain.linearRampToValueAtTime(sustain * gain, susStart);
-        envGain.gain.setValueAtTime(sustain * gain, noteOff);
-        envGain.gain.linearRampToValueAtTime(0, noteOff + release);
+// ═══════════════════════════════════════════════════════════════════
+//  CAMERA
+//  pos (x,y,z): world-space eye position. y=0.5 = mid-wall height.
+//  yaw:   rotation around Y axis (left/right), radians.
+//  pitch: rotation around X axis (up/down), radians, clamped ±76°.
+//
+//  Ray directions are precomputed for the full grid whenever yaw or
+//  pitch changes. This amortises the per-cell trig cost: standing
+//  still costs nothing; only turning rebuilds the table.
+// ═══════════════════════════════════════════════════════════════════
+const spawn = generateDungeon();
+rebuildWallTiles();
+const cam = { x:spawn.x, y:0.5, z:spawn.z, yaw:0, pitch:0 };
+spawnEnemies();
+spawnItems();
+addCombatMessage('You have entered the Monospace.');
 
-        // connect osc -> filter -> envGain
-        osc.connect(filter);
-        filter.connect(envGain);
-        let lastNode = envGain;
+// Flat array of normalised world-space ray directions, stored as
+// [rdx0,rdy0,rdz0, rdx1,rdy1,rdz1, ...] indexed by (cy*COLS+cx)*3.
+const rayDirs = new Float64Array(COLS * ROWS * 3);
+let lastYaw   = null; // null sentinel forces rebuild on first frame
+let lastPitch = null;
 
-        // Delay effect
-        if (effects.delayEnabled) {
-          const dryGain = this.ctx.createGain();
-          const wetGain = this.ctx.createGain();
-          const delay = this.ctx.createDelay(1.0);
-          const feedback = this.ctx.createGain();
-          delay.delayTime.value = effects.delayTime || 0.3;
-          feedback.gain.value = effects.delayFeedback || 0.4;
-          dryGain.gain.value = 1 - (effects.delayWet || 0.5);
-          wetGain.gain.value = effects.delayWet || 0.5;
+// Horizontal FOV. Increasing this widens the view (fisheye at extremes).
+const HFOV = Math.PI / 2.2; // ~82 degrees
 
-          lastNode.connect(dryGain);
-          lastNode.connect(wetGain);
-          wetGain.connect(delay);
-          delay.connect(feedback);
-          feedback.connect(delay);
-          lastNode = dryGain;
-          delay.connect(dryGain);
-        }
+// Focal length in cell units, derived from HFOV and grid width.
+// Rays are constructed as: dir = normalize(ndcX * CELL_ASPECT, ndcY, FOCAL)
+const FOCAL = (COLS / 2) / Math.tan(HFOV / 2);
 
-        // Distortion effect
-        if (effects.distortionEnabled) {
-          const distGain = this.ctx.createGain();
-          const shaper = this.ctx.createWaveShaper();
-          const amount = (effects.distortionAmount || 50) / 100;
-          const curveType = effects.distortionCurve || 'soft';
-          const n = 44100;
-          const curve = new Float32Array(n);
-          for (let i = 0; i < n; i++) {
-            const x = i * 2 / n - 1;
-            if (curveType === 'soft') {
-              curve[i] = (3 + amount * 20) * x * 20 * (Math.PI / 180) / (Math.PI + amount * Math.abs(x));
-            } else if (curveType === 'hard') {
-              const drive = 1 + amount * 10;
-              curve[i] = Math.max(-1, Math.min(1, x * drive));
-            } else if (curveType === 'foldback') {
-              const threshold = 1 - amount * 0.8;
-              curve[i] = Math.abs(x) < threshold ? x : (1 - Math.abs(x)) / (1 - threshold) * (x > 0 ? 1 : -1);
-            }
+// Aspect correction: cell width / cell height.
+// Without this, the projection treats cells as square and the view
+// looks vertically stretched. Multiply ndcX by CELL_ASPECT to fix.
+const CELL_ASPECT = CW / CH;
+
+// Rebuilds the full COLS×ROWS ray direction table from current cam yaw/pitch.
+// Called once at startup and on any camera rotation.
+function rebuildRayDirs() {
+  const tmp1 = new Float64Array(3);
+  const tmp2 = new Float64Array(3);
+  for(let cy=0; cy<ROWS; cy++) {
+    for(let cx=0; cx<COLS; cx++) {
+      // Cell centre in NDC: x in [-COLS/2, COLS/2], y in [-ROWS/2, ROWS/2]
+      const ndcX = (cx + 0.5) - COLS/2;
+      const ndcY = (cy + 0.5) - ROWS/2;
+
+      // Camera-space direction. Y is negated so screen-down = world-down.
+      // CELL_ASPECT on X ensures equal angular step per cell horizontally & vertically.
+      const rx = ndcX * CELL_ASPECT;
+      const ry = -ndcY;
+      const rz = FOCAL;
+      const il = 1 / Math.sqrt(rx*rx + ry*ry + rz*rz);
+
+      // Rotate camera-space dir into world space: pitch (X) then yaw (Y).
+      rotX3(rx*il, ry*il, rz*il, cam.pitch, tmp1);
+      rotY3(tmp1[0], tmp1[1], tmp1[2], cam.yaw, tmp2);
+
+      const i = (cy * COLS + cx) * 3;
+      rayDirs[i]   = tmp2[0];
+      rayDirs[i+1] = tmp2[1];
+      rayDirs[i+2] = tmp2[2];
+    }
+  }
+  lastYaw   = cam.yaw;
+  lastPitch = cam.pitch;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  LIGHTING
+//  Single directional light (sun). Normalised world-space direction.
+//  Shading = ambient + max(0, dot(normal, SUN)) * diffuseScale.
+//  Fog = max(0, 1 - t/FOG_DIST) — multiplied into brightness.
+// ═══════════════════════════════════════════════════════════════════
+const _sunLen = Math.sqrt(0.4*0.4 + 1*1 + 0.6*0.6);
+const SUN = [0.4/_sunLen, 1/_sunLen, 0.6/_sunLen];
+const FOG_DIST = 14; // world units at which surfaces fade to black
+
+// ═══════════════════════════════════════════════════════════════════
+//  PICKUP CUBE
+//  A small spinning AABB "item pickup" sitting on the floor.
+//  Spins around its Y axis; bobs sinusoidally up and down.
+//
+//  The cube is defined in its own object space (centred at origin,
+//  half-extent PHALF). To intersect it, the ray is transformed into
+//  object space by translating to the cube centre and applying the
+//  inverse spin rotation. The hit normal is rotated back to world
+//  space for lighting.
+//
+//  To add more pickups / entities: duplicate this pattern with
+//  different world positions and spin phases.
+// ═══════════════════════════════════════════════════════════════════
+const PHALF = 0.18;    // half-extent of cube (so cube is 0.36 units wide)
+
+// ═══════════════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════════════
+function render(t) {
+  if (playerDead) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#fff';
+    ctx.font = `${CH * 3}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillText('YOU DIED', canvas.width / 2, canvas.height / 2 - CH);
+    ctx.font = `${CH * 1.5}px monospace`;
+    ctx.fillText('Press R to restart', canvas.width / 2, canvas.height / 2 + CH * 2);
+    ctx.textAlign = 'left';
+    return;
+  }
+
+  // ── Pickup animation ──────────────────────────────────────────
+  const pickYaw = t * 1.1;                    // spin speed (rad/s)
+  const bob     = Math.sin(t * 2.1) * 0.04;  // vertical bob amplitude
+  // Cube Y bounds in world space (bob shifts both floor and top)
+  const pickBobY = bob; // bottom of cube
+
+  // ── Precomputed ray dirs (rebuild if camera rotated) ──────────
+  if(lastYaw===null || cam.yaw!==lastYaw || cam.pitch!==lastPitch)
+    rebuildRayDirs();
+
+  // ── Clear canvas ──────────────────────────────────────────────
+  ctx.fillStyle = '#06000f';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Set font once per frame — not per cell — for performance.
+  ctx.font = `${CH}px 'Courier New',monospace`;
+
+  const camx=cam.x, camy=cam.y, camz=cam.z;
+
+  // ── Per-cell ray loop ─────────────────────────────────────────
+  for(let cy=0; cy<ROWS; cy++) {
+    for(let cx=0; cx<COLS; cx++) {
+      const ri  = (cy*COLS + cx) * 3;
+      const rdx = rayDirs[ri], rdy = rayDirs[ri+1], rdz = rayDirs[ri+2];
+
+      let bestT     = 1e38; // distance to nearest hit so far
+      let bestCh    = ' ';  // character to draw
+      let bestColor = '';
+
+      // ── TEST: Walls ─────────────────────────────────────────
+      // Each solid tile is a unit AABB [tx,0,tz]→[tx+1,1,tz+1].
+      // wallTiles[] is precomputed at startup; no tile bounds math here.
+      for(const w of wallTiles) {
+        const t = rayAABB(camx,camy,camz, rdx,rdy,rdz,
+                          w[0],w[1],w[2], w[3],w[4],w[5], nOut);
+        if(t<0 || t>=bestT) continue;
+        const diffuse = Math.max(0, dot3(nOut[0],nOut[1],nOut[2], SUN[0],SUN[1],SUN[2]));
+        const fog     = Math.max(0, 1 - t/FOG_DIST);
+        const b       = (0.1 + diffuse*0.9) * fog;
+        bestT         = t;
+        bestCh        = ramp(b);
+        bestColor     = `hsl(28,25%,${Math.floor(8+b*42)}%)`;
+      }
+
+      // ── TEST: Floor (Y = 0 plane) ────────────────────────────
+      // t = (targetY - rayOriginY) / rayDirY
+      // Skip if ray is horizontal (rdy ≈ 0) to avoid divide-by-zero.
+      if(Math.abs(rdy) > 1e-8) {
+        const t = (0 - camy) / rdy;
+        if(t > 1e-4 && t < bestT) {
+          // Check that the hit point is inside an open (non-solid) tile
+          const hx=camx+rdx*t, hz=camz+rdz*t;
+          if(!solid(Math.floor(hx), Math.floor(hz))) {
+            const fog = Math.max(0, 1 - t/FOG_DIST);
+            const b   = 0.05 + fog*0.30;
+            bestT     = t;
+            bestCh    = ramp(b);
+            bestColor = `hsl(220,12%,${Math.floor(3+fog*16)}%)`;
           }
-          shaper.curve = curve;
-          lastNode.connect(shaper);
-          shaper.connect(distGain);
-          distGain.gain.value = 1;
-          lastNode = distGain;
         }
 
-        // Bitcrusher effect
-        if (effects.bitcrusherEnabled) {
-          const bits = effects.bitDepth || 8;
-          const rate = effects.sampleRate || 8000;
-          const step = Math.pow(0.5, bits);
-          const crusher = this.ctx.createScriptProcessor(256, 1, 1);
-          crusher.onaudioprocess = (e) => {
-            const input = e.inputBuffer.getChannelData(0);
-            const output = e.outputBuffer.getChannelData(0);
-            for (let i = 0; i < input.length; i++) {
-              output[i] = Math.round(input[i] / step) * step;
-            }
-          };
-          // sample rate reduction using a simple down/up-sampling approach is complex;
-          // we omit actual rate reduction for now and keep it as a placeholder
-          lastNode.connect(crusher);
-          crusher.connect(this.ctx.destination);
-          lastNode = crusher;
-        }
-
-        // Reverb effect (simple feedback delay with filter)
-        if (effects.reverbEnabled) {
-          const dryGain = this.ctx.createGain();
-          const wetGain = this.ctx.createGain();
-          const reverbDelay = this.ctx.createDelay(0.1);
-          const feedback = this.ctx.createGain();
-          const filter = this.ctx.createBiquadFilter();
-          reverbDelay.delayTime.value = 0.05;
-          feedback.gain.value = Math.min(effects.reverbDecay || 0.5, 0.85); // prevent self-oscillation
-          filter.type = 'lowpass';
-          filter.frequency.value = 3000;
-          dryGain.gain.value = 1 - (effects.reverbMix || 0.5);
-          wetGain.gain.value = effects.reverbMix || 0.5;
-
-          lastNode.connect(dryGain);
-          lastNode.connect(wetGain);
-          wetGain.connect(reverbDelay);
-          reverbDelay.connect(filter);
-          filter.connect(feedback);
-          feedback.connect(reverbDelay);
-          lastNode = dryGain;
-          reverbDelay.connect(dryGain);
-        }
-
-        // Safety limiter (shared across all voices)
-        if (!this._poolLimiter) {
-          this._poolLimiter = this.ctx.createDynamicsCompressor();
-          this._poolLimiter.threshold.value = -6;
-          this._poolLimiter.knee.value = 0;
-          this._poolLimiter.ratio.value = 20;
-          this._poolLimiter.attack.value = 0.003;
-          this._poolLimiter.release.value = 0.25;
-          this._poolLimiter.connect((this.engine && this.engine.masterGain) || this.ctx.destination);
-        }
-        const limiter = this._poolLimiter;
-
-        // LFO modulation
-        if (this.config.lfo?.enabled) {
-          const lfo = this.ctx.createOscillator();
-          const lfoGain = this.ctx.createGain();
-          const lfoDepth = this.config.lfo.depth || 0.5;
-          lfo.type = this.config.lfo.waveform || 'sine';
-          lfo.frequency.value = this.config.lfo.rate || 2;
-          lfoGain.gain.value = 0;
-
-          const target = this.config.lfo.target || 'filter';
-          if (target === 'filter') {
-            const baseCutoff = filter.frequency.value;
-            lfoGain.gain.value = lfoDepth * baseCutoff * 0.5;
-            lfo.connect(lfoGain);
-            lfoGain.connect(filter.frequency);
-          } else if (target === 'pitch') {
-            const baseFreq = freq;
-            lfoGain.gain.value = lfoDepth * baseFreq * 0.1;
-            lfo.connect(lfoGain);
-            lfoGain.connect(osc.frequency);
-          } else if (target === 'gain') {
-            const tremoloGain = this.ctx.createGain();
-            tremoloGain.gain.value = 1;
-            lfoGain.gain.value = lfoDepth * 0.3;
-            lfo.connect(lfoGain);
-            lfoGain.connect(tremoloGain.gain);
-            envGain.disconnect();
-            envGain.connect(tremoloGain);
-            lastNode = tremoloGain;
+        // ── TEST: Ceiling (Y = 1 plane) ──────────────────────
+        const tc = (1 - camy) / rdy;
+        if(tc > 1e-4 && tc < bestT) {
+          const hx=camx+rdx*tc, hz=camz+rdz*tc;
+          if(!solid(Math.floor(hx), Math.floor(hz))) {
+            const fog = Math.max(0, 1 - tc/FOG_DIST);
+            const b   = 0.04 + fog*0.22;
+            bestT     = tc;
+            bestCh    = ramp(b);
+            bestColor = `hsl(220,8%,${Math.floor(2+fog*10)}%)`;
           }
-          lfo.start(now);
-          lfo.stop(noteOff + release + 1.5);
-          this._releaseCallbacks.push(() => {
-            lfo.stop();
-            lfo.disconnect();
-          });
         }
-
-        // Post filter (tone shaping)
-        if (this.config.postFilterEnabled) {
-          const postFilter = this.ctx.createBiquadFilter();
-          postFilter.type = this.config.postFilterType || 'lowpass';
-          postFilter.frequency.value = this.config.postFilterFreq || 2000;
-          postFilter.Q.value = this.config.postFilterQ || 0;
-          lastNode.connect(postFilter);
-          lastNode = postFilter;
-        }
-
-        lastNode.connect(limiter);
-        osc.start(now);
-        osc.stop(noteOff + release + 1.5);
-
-        // Store nodes for cleanup
-        this._nodes = { osc, filter, envGain, delayNodes: [], distNodes: [], reverbNodes: [], lfoNodes: [] };
       }
 
-      release() {
-        if (!this.active) return;
-        this.active = false;
-        if (this._nodes) {
-          const { osc, filter, envGain } = this._nodes;
-          try { osc.stop(); } catch(e) {}
-          osc.disconnect();
-          filter.disconnect();
-          envGain.disconnect();
-          // Disconnect any effect nodes that were created
-          for (const n of this._nodes.delayNodes) n.disconnect();
-          for (const n of this._nodes.distNodes) n.disconnect();
-          for (const n of this._nodes.reverbNodes) n.disconnect();
-          for (const n of this._nodes.lfoNodes) n.disconnect();
-          this._nodes = null;
+      // ── Items ─────────────────────────────────────────────
+      for (const it of items) {
+        const bob = 0.03 + Math.sin(t * 3.0 + it.bobPhase) * 0.01;
+        const ox = camx - it.x;
+        const oy = camy - (0.05 + bob);
+        const oz = camz - it.z;
+        const tHit = rayAABB(ox, oy, oz, rdx, rdy, rdz, -it.half, 0, -it.half, it.half, it.half * 2, it.half, nOut);
+        if (tHit >= 0 && tHit < bestT) {
+          const diffuse = Math.max(0, dot3(nOut[0], nOut[1], nOut[2], SUN[0], SUN[1], SUN[2]));
+          const fog = Math.max(0, 1 - tHit / FOG_DIST);
+          const b = (0.3 + diffuse * 0.7) * fog;
+          bestT = tHit;
+          bestCh = ramp(b);
+          // Parse hex colour from item type
+          const hex = it.type.color;
+          const r = parseInt(hex.slice(1,3), 16);
+          const g = parseInt(hex.slice(3,5), 16);
+          const br = parseInt(hex.slice(5,7), 16);
+          const rr = Math.floor(r * b + 8 * (1 - b));
+          const gg = Math.floor(g * b + 8 * (1 - b));
+          const bb = Math.floor(br * b + 8 * (1 - b));
+          bestColor = `rgb(${rr},${gg},${bb})`;
         }
-        // Run any additional release callbacks (LFOs, etc.)
-        for (const cb of this._releaseCallbacks) {
-          try { cb(); } catch(e) {}
+      }
+
+      // ── TEST: Enemies ──────────────────────────────────────
+      for (const e of enemies) {
+        const ox = camx - e.x;
+        const oy = camy - (0.45 + Math.sin(t + e.bobPhase) * 0.08);
+        const oz = camz - e.z;
+        // Tumble in both axes: Y rotation (e.yaw) and X rotation (time * speed)
+        const yawInv = -e.yaw;
+        const pitchInv = -(t + e.bobPhase) * e.speed;
+        const cY = Math.cos(yawInv), sY = Math.sin(yawInv);
+        const cP = Math.cos(pitchInv), sP = Math.sin(pitchInv);
+        // Rotate around Y
+        let rx = ox * cY + oz * sY;
+        let ry = oy;
+        let rz = -ox * sY + oz * cY;
+        // Rotate around X
+        const ry2 = ry * cP - rz * sP;
+        const rz2 = ry * sP + rz * cP;
+        // Rotate ray direction same way
+        let rdxR = rdx * cY + rdz * sY;
+        let rdyR = rdy;
+        let rdzR = -rdx * sY + rdz * cY;
+        const rdy2 = rdyR * cP - rdzR * sP;
+        const rdz2 = rdyR * sP + rdzR * cP;
+        const eh = ENEMY_RADIUS;
+        const tHit = rayAABB(rx, ry2, rz2, rdxR, rdy2, rdz2, -eh, -eh, -eh, eh, eh, eh, nOut);
+        if (tHit >= 0 && tHit < bestT) {
+          const diffuse = Math.max(0, dot3(nOut[0], nOut[1], nOut[2], SUN[0], SUN[1], SUN[2]));
+          const fog = Math.max(0, 1 - tHit / FOG_DIST);
+          const b = (0.25 + diffuse * 0.75) * fog;
+          bestT = tHit;
+          bestCh = ramp(b);
+          bestColor = `hsl(160, ${Math.floor(45 + b * 35)}%, ${Math.floor(18 + b * 58)}%)`;
         }
-        this._releaseCallbacks = [];
+      }
+
+      // ── Draw cell ────────────────────────────────────────────
+      if(bestCh !== ' ') {
+        ctx.fillStyle = bestColor;
+        ctx.fillText(bestCh, cx*CW, cy*CH);
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  INPUT
+//  keys{} tracks held keys by e.code (layout-independent).
+//  Arrow keys have default scroll behaviour suppressed.
+//
+//  Pointer lock: the click listener lives on #overlay (not canvas)
+//  because the overlay is position:absolute and intercepts clicks.
+//  Once locked, overlay is hidden and mousemove drives cam.yaw/pitch.
+// ═══════════════════════════════════════════════════════════════════
+const keys = {};
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'KeyR' && playerDead) { resetGame(); return; }
+  if (e.code === 'Tab') {
+    e.preventDefault();
+    const newState = !inventoryOpen;
+    inventoryOpen = newState;
+    if (setInvOpen) setInvOpen(newState);
+    if (newState) {
+      canvas.style.cursor = 'default';
+      if (document.pointerLockElement) document.exitPointerLock();
+    } else {
+      canvas.style.cursor = 'none';
+      canvas.requestPointerLock();
+    }
+    return;
+  }
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','Tab'].includes(e.code))
+    e.preventDefault(); // prevent page scroll and tab focus
+});
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+let inventoryOpen = false;
+let setInvOpen = null;
+let locked = false;
+let mouseDownThisFrame = false;
+canvas.addEventListener('click', () => { if (!inventoryOpen) canvas.requestPointerLock(); });
+canvas.addEventListener('mousedown', () => { if (!inventoryOpen) mouseDownThisFrame = true; });
+document.addEventListener('pointerlockchange', () => {
+  locked = document.pointerLockElement === canvas;
+});
+document.addEventListener('mousemove', e => {
+  if(!locked) return;
+  cam.yaw   += e.movementX * 0.0011;
+  // movementY positive = mouse down = look down = pitch increases (more positive).
+  // Pitch convention: positive pitch tilts camera upward (+Y direction).
+  cam.pitch  = Math.max(-Math.PI*0.42, Math.min(Math.PI*0.42,
+                 cam.pitch + e.movementY * 0.0011));
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  MOVEMENT + COLLISION
+//  Movement is always relative to yaw (never pitch) so the player
+//  walks on the flat XZ plane regardless of where they're looking.
+//
+//  Collision is axis-separated: X and Z are tested independently.
+//  This allows sliding along walls instead of stopping dead.
+//  PRADIUS is the player collision radius in world units.
+// ═══════════════════════════════════════════════════════════════════
+const SPEED   = 4.0;  // world units per second
+const PRADIUS = 0.3;  // player collision radius
+
+function tryMove(dx, dz) {
+  const nx = cam.x + dx;
+  const nz = cam.z + dz;
+  // Test X move: check both sides of player radius along current Z
+  if(!solid(Math.floor(nx - PRADIUS), Math.floor(cam.z)) &&
+     !solid(Math.floor(nx + PRADIUS), Math.floor(cam.z)))
+    cam.x = nx;
+  // Test Z move: check both sides of player radius along (possibly updated) X
+  if(!solid(Math.floor(cam.x), Math.floor(nz - PRADIUS)) &&
+     !solid(Math.floor(cam.x), Math.floor(nz + PRADIUS)))
+    cam.z = nz;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  MAIN LOOP
+//  dt is capped at 50ms (~20fps minimum) to prevent huge position
+//  jumps if the tab is backgrounded and then foregrounded.
+//  lastTime=null on first frame sets dt=0 (no movement on frame 1).
+// ═══════════════════════════════════════════════════════════════════
+let lastTime = null;
+
+function frame(time) {
+  const dt = lastTime===null ? 0 : Math.min((time - lastTime) / 1000, 0.05);
+  lastTime = time;
+
+  if(dt > 0 && !playerDead) {
+    // ── Player attack cooldown ──
+    playerAttackCooldown = Math.max(0, playerAttackCooldown - dt);
+    // ── Player attack (raycast) ──
+    if (mouseDownThisFrame && playerAttackCooldown <= 0) {
+      const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw);
+      const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+      const fdx = sy * cp, fdy = sp, fdz = cy * cp;
+      let bestT = ATTACK_RANGE, bestE = null;
+      for (const e of enemies) {
+        const ox = cam.x - e.x, oz = cam.z - e.z;
+        const cInv = Math.cos(-e.yaw), sInv = Math.sin(-e.yaw);
+        let rx = ox * cInv + oz * sInv;
+        let ry = cam.y - (0.45 + Math.sin(performance.now() * 0.001 + e.bobPhase) * 0.08);
+        let rz = -ox * sInv + oz * cInv;
+        let rdx = fdx * cInv + fdz * sInv;
+        let rdy = fdy;
+        let rdz = -fdx * sInv + fdz * cInv;
+        const eh = ENEMY_RADIUS;
+        const tHit = rayAABB(rx, ry, rz, rdx, rdy, rdz, -eh, -eh, -eh, eh, eh, eh, nOut);
+        if (tHit >= 0 && tHit < bestT) { bestT = tHit; bestE = e; }
+      }
+      if (bestE) {
+      // Determine damage (crit doubles it)
+      let dmg = attackDamage;
+      let crit = false;
+      if (playerCritChance > 0 && Math.random() * 100 < playerCritChance) {
+        dmg *= 2;
+        crit = true;
+      }
+      bestE.health -= dmg;
+      addCombatMessage(crit ? `You critically strike a crystal for ${dmg} damage!` : `You strike a crystal for ${dmg} damage.`);
+      // Warding: gain shield on attack
+      if (playerWarding > 0) {
+        const maxShieldCap = Math.floor(playerMaxHealth * 0.5);
+        playerShield = Math.min(playerShield + playerWarding, maxShieldCap);
+      }
+      // Lifesteal
+      if (playerLifesteal > 0) {
+        const heal = Math.round(dmg * playerLifesteal / 100);
+        playerHealth = Math.min(playerMaxHealth, playerHealth + heal);
+        if (heal > 0) addCombatMessage(`Lifesteal restores ${heal} HP.`);
+      }
+      // Frost
+      if (playerFrostChance > 0 && Math.random() * 100 < playerFrostChance) {
+        bestE.slowed = true;
+        bestE.slowTimer = 1.5;
+        addCombatMessage('Frost slows the crystal!');
+      }
+      // Echo
+      if (playerEchoChance > 0 && Math.random() * 100 < playerEchoChance) {
+        const echoDmg = Math.round(dmg * 0.6);
+        bestE.health -= echoDmg;
+        addCombatMessage(`Echo strikes for ${echoDmg} damage!`);
+      }
+      // Fire (always applies if any fire damage)
+      if (playerFireDamage > 0) {
+        bestE.burnTimer = 3.0;
+        bestE.burnDamage = playerFireDamage;
+        addCombatMessage(`Enemy set ablaze!`);
+      }
+      // Mana on hit
+      if (playerManaOnHit > 0) {
+        playerMana = Math.min(playerMaxMana, playerMana + playerManaOnHit);
+      }
+      // Paralyze
+      if (playerParalyzeChance > 0 && Math.random() * 100 < playerParalyzeChance) {
+        bestE.paralyzedTimer = 2.0;
+        addCombatMessage('Crystal is paralyzed!');
+      }
+        if (bestE.health <= 0) {
+          addCombatMessage('Crystal shatters!');
+          enemies.splice(enemies.indexOf(bestE), 1);
+        }
+        playerAttackCooldown = ATTACK_COOLDOWN;
+      }
+      mouseDownThisFrame = false;
+    }
+    mouseDownThisFrame = false;
+
+    // ── Enemy AI ──
+    updateEnemies(dt);
+    for (const e of enemies) {
+      e.yaw += e.speed * dt;
+      e.damageTimer -= dt;
+      const dist = Math.hypot(cam.x - e.x, cam.z - e.z);
+      if (e.paralyzedTimer <= 0 && dist < ENEMY_ATTACK_RANGE && e.damageTimer <= 0) {
+        let dmg = ENEMY_DAMAGE;
+        let absorbed = 0;
+        if (playerShield > 0) {
+          absorbed = Math.min(playerShield, dmg);
+          playerShield -= absorbed;
+          dmg -= absorbed;
+        }
+        playerHealth -= dmg;
+        e.damageTimer = 1.0;
+        addCombatMessage(`Enemy crystal strikes you! -${ENEMY_DAMAGE} damage${absorbed > 0 ? ` (shield absorbed ${absorbed})` : ''}`);
+        updateHUD();
+        // Thorns reflection
+        if (playerThorns > 0) {
+          const reflect = Math.round(ENEMY_DAMAGE * playerThorns / 100);
+          e.health -= reflect;
+          addCombatMessage(`Thorns reflect ${reflect} damage.`);
+          if (e.health <= 0) {
+            addCombatMessage('Crystal shatters from thorns!');
+            enemies.splice(enemies.indexOf(e), 1);
+          }
+        }
+        if (playerHealth <= 0) { playerHealth = 0; playerDead = true; addCombatMessage('You have been destroyed.'); updateHUD(); }
       }
     }
 
-    // ---------- Scheduler ----------
-    class Scheduler {
-      constructor(ctx) { this.ctx = ctx; this.timer = null; this.step = 0; this.nextTime = 0; this.cb = null; this.bpm = 120; this.steps = 16; }
-      start(bpm, steps, onStep) {
-        const stepDur = 60 / bpm / 4;
-        this.bpm = bpm;
-        this.steps = steps;
-        this.step = 0;
-        this.nextTime = this.ctx.currentTime;
-        this.cb = onStep;
-        this.timer = setInterval(() => {
-          while (this.nextTime < this.ctx.currentTime + 0.1) {
-            this.cb(this.step, this.nextTime);
-            this.step = (this.step + 1) % steps;
-            this.nextTime += stepDur;
-          }
-        }, 25);
-      }
-      stop() { if (this.timer) { clearInterval(this.timer); this.timer = null; } }
-      reset() {
-        this.step = 0;
-        this.nextTime = this.ctx.currentTime + 0.05; // short offset to retrigger immediately
+    // Forward/right vectors from yaw only (ignoring pitch for flat movement)
+    const spd = SPEED + (recalcStats._speedBonus || 0);
+    const sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw);
+    let dx=0, dz=0;
+    if(keys['KeyW'] || keys['ArrowUp'])    { dx += sy*spd*dt; dz += cy*spd*dt; }
+    if(keys['KeyS'] || keys['ArrowDown'])  { dx -= sy*spd*dt; dz -= cy*spd*dt; }
+    if(keys['KeyA'] || keys['ArrowLeft'])  { dx -= cy*spd*dt; dz += sy*spd*dt; }
+    if(keys['KeyD'] || keys['ArrowRight']) { dx += cy*spd*dt; dz -= sy*spd*dt; }
+    if(dx || dz) tryMove(dx, dz);
+
+    // ── Item pickup ──
+    for (let i = items.length - 1; i >= 0; i--) {
+      const it = items[i];
+      if (Math.hypot(cam.x - it.x, cam.z - it.z) < PICKUP_RANGE) {
+        inventory.push(it);
+        items.splice(i, 1);
+        addCombatMessage(`Picked up ${it.type.name}.`);
       }
     }
+  }
 
-    // ---------- Waveform Drawing ----------
-    function drawWaveform(canvas, type) {
-      const ctx = canvas.getContext('2d');
-      const w = canvas.width, h = canvas.height;
-      ctx.clearRect(0,0,w,h);
-      ctx.strokeStyle='#d4af37'; ctx.lineWidth=2;
-      ctx.beginPath();
-      const samples=200;
-      for(let i=0;i<=samples;i++){
-        const x=(i/samples)*w;
-        let t=i/samples, y=h/2;
-        if(type==='sine') y=h/2-Math.sin(t*Math.PI*2)*(h/2-2);
-        else if(type==='square') y=t<0.5?2:h-2;
-        else if(type==='sawtooth') y=h-2-(t*(h-4));
-        else if(type==='triangle') y=t<0.5?(2+(t*2)*(h/2-2)):(h-2-((t-0.5)*2)*(h/2-2));
-        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-      }
-      ctx.stroke();
-    }
+  render(time * 0.001);
+  requestAnimationFrame(frame);
+}
 
-    // ---------- Piano Keyboard Drawing ----------
-    function drawPianoKeyboard(canvas, pitches, sharps) {
-      const ctx = canvas.getContext('2d');
-      const w = canvas.width;
-      const h = canvas.height;
-      ctx.clearRect(0, 0, w, h);
-      const rowH = h / pitches.length;
+requestAnimationFrame(frame);
+</script>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
 
-      for (let i = 0; i < pitches.length; i++) {
-        const p = pitches[i];
-        const y = i * rowH;
-        const isSharp = sharps.has(p);
-        if (isSharp) {
-          const inset = 8;
-          ctx.fillStyle = '#1a1a2e';
-          ctx.fillRect(inset, y, w - inset * 2, rowH);
-          ctx.fillStyle = '#666';
-          ctx.font = '7px monospace';
-          ctx.fillText(p, inset + 2, y + rowH - 2);
-        } else {
-          ctx.fillStyle = '#f0ece4';
-          ctx.fillRect(0, y, w, rowH);
-          ctx.strokeStyle = '#ccc';
-          ctx.strokeRect(0, y, w, rowH);
-          ctx.fillStyle = '#333';
-          ctx.font = 'bold 8px monospace';
-          ctx.fillText(p, 4, y + rowH - 4);
-        }
-      }
-    }
+const HudApp = () => {
+  const [state, setState] = useState({ health:100, maxHealth:100, mana:50, maxMana:50, shield:0, maxShield:0, warding:0, log:combatLog, inventory:[...inventory], equipment:{...equipment}, attackDamage, lifesteal:0, frostChance:0, echoChance:0, fireDamage:0, critChance:0, manaOnHit:0, thorns:0, xpGain:0, paralyzeChance:0, playerSpeed:SPEED.toFixed(1) });
+  const [destroyMode, setDestroyMode] = useState(false);
+  const [showDestroyConfirm, setShowDestroyConfirm] = useState(false);
+  const [activeTab, setActiveTab] = useState('inventory');
+  const [invOpen, setInvOpenLocal] = useState(false);
+  const [tooltip, setTooltip] = useState(null);
+  const logRef = useRef(null);
+  useEffect(() => { setPlayerState = setState; }, []);
+  useEffect(() => { setInvOpen = setInvOpenLocal; }, [setInvOpenLocal]);
+  useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [state.log]);
+  useEffect(() => { if (!invOpen) setTooltip(null); }, [invOpen]);
 
-    // ---------- Contexts ----------
-    const EngineContext = createContext(null);
-    const SoundLibraryContext = createContext({ sounds:[], addSound:()=>{}, updateSound:()=>{} });
+  const rowStyle = { display:'flex', alignItems:'center', gap:8, width:320, background:'rgba(0,0,0,0.6)', padding:'4px 10px', borderRadius:4 };
+  const labelStyle = { width:40, textAlign:'right', fontSize:12, flexShrink:0 };
+  const barBgStyle = { flex:1, height:14, background:'#222', border:'1px solid #444' };
+  const valueStyle = { width:72, fontSize:10, color:'#aaa', flexShrink:0 };
 
-    // ---------- Sound Creation/Edit Modal ----------
-    function SoundModal({ initialSound, onClose }) {
-      const engine = useContext(EngineContext);
-      const { addSound, updateSound } = useContext(SoundLibraryContext);
-      const editing = !!initialSound;
-      const [name, setName] = useState(initialSound?.name || 'New Sound');
-      const [config, setConfig] = useState(initialSound?.config || {
-        type:'sine', filterType:'lowpass', cutoff:1000, resonance:0,
-        attack:0.01, decay:0.1, sustain:0.6, release:0.3, gain:0.3,
-        postFilterEnabled: false, postFilterType:'lowpass', postFilterFreq:2000, postFilterQ:0,
-        lfo: {
-          enabled: false, waveform:'sine', rate:2, depth:0.5,
-          target:'filter', // 'filter','pitch','gain'
-        },
-        effects: {
-          delayEnabled: false, delayTime: 0.3, delayFeedback: 0.4, delayWet: 0.5,
-          reverbEnabled: false, reverbDecay: 0.5, reverbMix: 0.5,
-          distortionEnabled: false, distortionAmount: 50, distortionCurve: 'soft',
-          bitcrusherEnabled: false, bitDepth: 8, sampleRate: 8000,
-        }
-      });
-      const [showEffects, setShowEffects] = useState(false);
-      const waveCanvasRef = useRef(null);
-      const spectrumCanvasRef = useRef(null);
-      const envCanvasRef = useRef(null);
-      const [vizMode, setVizMode] = useState('waveform'); // 'waveform' | 'spectrum' | 'envelope'
-
-      // Draw waveform whenever oscillator type changes
-      useEffect(() => {
-        if (waveCanvasRef.current) drawWaveform(waveCanvasRef.current, config.type);
-      }, [config.type]);
-
-      // Draw frequency response whenever filter/post-filter parameters change
-      useEffect(() => {
-        if (spectrumCanvasRef.current) drawStaticSpectrum(spectrumCanvasRef.current, config);
-      }, [
-        config.type, config.filterType, config.cutoff, config.resonance,
-        config.postFilterEnabled, config.postFilterType, config.postFilterFreq, config.postFilterQ
-      ]);
-
-      // Draw ADSR envelope whenever envelope parameters change
-      useEffect(() => {
-        if (envCanvasRef.current) drawEnvelope(envCanvasRef.current, config);
-      }, [config.attack, config.decay, config.sustain, config.release]);
-
-      const drawEnvelope = (canvas, cfg) => {
-        const ctx = canvas.getContext('2d');
-        const w = canvas.width, h = canvas.height;
-        ctx.clearRect(0, 0, w, h);
-        ctx.strokeStyle = '#d4af37';
-        ctx.lineWidth = 2;
-        const attack = cfg.attack || 0.01;
-        const decay = cfg.decay || 0.1;
-        const sustain = cfg.sustain || 0.6;
-        const release = cfg.release || 0.3;
-        const totalDur = attack + decay + 0.3 + release;
-        const scaleX = w / totalDur;
-        const scaleY = h * 0.9;
-        const offsetY = h * 0.05;
-        const toX = (t) => t * scaleX;
-        const toY = (v) => h - offsetY - v * scaleY;
-        ctx.beginPath();
-        ctx.moveTo(toX(0), toY(0));
-        ctx.lineTo(toX(attack), toY(1));
-        ctx.lineTo(toX(attack + decay), toY(sustain));
-        ctx.lineTo(toX(attack + decay + 0.3), toY(sustain));
-        ctx.lineTo(toX(totalDur), toY(0));
-        ctx.stroke();
-      };
-
-      const drawStaticSpectrum = (canvas, cfg) => {
-        const ctx = canvas.getContext('2d');
-        const w = canvas.width, h = canvas.height;
-        ctx.clearRect(0, 0, w, h);
-
-        const freqMin = 20, freqMax = 8000;
-        const freqToX = (f) => Math.log(f / freqMin) / Math.log(freqMax / freqMin) * w;
-        
-        const getOscHarmonics = (type) => {
-          const harmonics = [];
-          for (let k = 1; k <= 10; k++) {
-            let amp = 0;
-            if (type === 'sine') amp = (k === 1 ? 1 : 0);
-            else if (type === 'square') amp = (k % 2 === 1 ? 1/k : 0);
-            else if (type === 'sawtooth') amp = 1/k;
-            else if (type === 'triangle') amp = (k % 2 === 1 ? 1/(k*k) : 0);
-            harmonics.push(amp);
-          }
-          return harmonics;
-        };
-
-        const harmonics = getOscHarmonics(cfg.type);
-        const fundamental = 440;
-
-        const filterMag = (freq) => {
-          const mag1 = biquadMag(cfg.filterType, cfg.cutoff, cfg.resonance, freq);
-          if (cfg.postFilterEnabled) {
-            const mag2 = biquadMag(cfg.postFilterType, cfg.postFilterFreq, cfg.postFilterQ, freq);
-            return mag1 * mag2;
-          }
-          return mag1;
-        };
-
-        const biquadMag = (type, freq, q, f) => {
-          const w = f / freq;
-          const w2 = w * w;
-          const Q = Math.max(0.01, q);
-          switch (type) {
-            case 'lowpass': return 1 / Math.sqrt(w2 * w2 + (1/Q - 2) * w2 + 1);
-            case 'highpass': return w2 / Math.sqrt(w2 * w2 + (1/Q - 2) * w2 + 1);
-            case 'bandpass': return (w/Q) / Math.sqrt(w2 * w2 + (1/Q - 2) * w2 + 1);
-            case 'notch': return Math.abs(1 - w2) / Math.sqrt(w2 * w2 + (1/Q - 2) * w2 + 1);
-            default: return 1;
-          }
-        };
-
-        // Draw harmonic stems
-        ctx.strokeStyle = '#d4af37';
-        ctx.lineWidth = 2;
-        for (let k = 1; k <= 10; k++) {
-          const amp = harmonics[k-1];
-          if (amp === 0) continue;
-          const freq = fundamental * k;
-          const x = freqToX(freq);
-          if (x < 0 || x > w) continue;
-          const mag = filterMag(freq);
-          const stemHeight = amp * mag * h * 0.9;
-          ctx.beginPath();
-          ctx.moveTo(x, h);
-          ctx.lineTo(x, h - stemHeight);
-          ctx.stroke();
-        }
-
-        // Draw main filter response curve (always visible)
-        ctx.strokeStyle = 'rgba(155, 89, 182, 0.6)';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        const steps = 200;
-        for (let i = 0; i <= steps; i++) {
-          const t = i / steps;
-          const freq = freqMin * Math.pow(freqMax / freqMin, t);
-          const x = t * w;
-          const mag1 = biquadMag(cfg.filterType, cfg.cutoff, cfg.resonance, freq);
-          const y = h - mag1 * h * 0.9;
-          if (i === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-
-        // If post-filter is enabled, draw its individual curve in bright red
-        if (cfg.postFilterEnabled) {
-          ctx.strokeStyle = 'rgba(231, 76, 60, 0.9)';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          for (let i = 0; i <= steps; i++) {
-            const t = i / steps;
-            const freq = freqMin * Math.pow(freqMax / freqMin, t);
-            const x = t * w;
-            const mag2 = biquadMag(cfg.postFilterType, cfg.postFilterFreq, cfg.postFilterQ, freq);
-            const y = h - mag2 * h * 0.9;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-          }
-          ctx.stroke();
-        }
-      };
-
-      const update = (k,v) => setConfig(prev=>({...prev,[k]:v}));
-      const updateEffect = (k,v) => setConfig(prev=>({...prev, effects:{...prev.effects, [k]:v}}));
-      const updateLFO = (k,v) => setConfig(prev=>({...prev, lfo:{...prev.lfo, [k]:v}}));
-      const handlePreview = () => { const ctx=engine.getContext(); new SynthVoice(ctx,config).play(440,ctx.currentTime,0.5); };
-      const handleSave = () => {
-        if(editing) updateSound(initialSound.id, { name:name||'Unnamed', config });
-        else addSound({ name:name||'Unnamed', config });
-        onClose();
-      };
-      const [showLFO, setShowLFO] = useState(false);
-
-      return (
-        <div className="modal-overlay" onClick={onClose}>
-          <div className="modal-wrapper" onClick={e=>e.stopPropagation()}>
-          <div className={`lfo-panel ${showLFO ? 'open' : ''}`}>
-            {showLFO && (
+  return (
+    <>
+      <div className="hud-bars">
+        <div style={rowStyle}>
+          <span style={labelStyle}>HP</span>
+          <div style={{...barBgStyle, position:'relative', overflow:'hidden'}}><div style={{width:(state.health/state.maxHealth*100)+'%', height:'100%', background:'#cc3333'}} />{state.shield > 0 && <div style={{position:'absolute', top:'25%', right:0, width:Math.min((state.shield/state.maxHealth*100), 100)+'%', height:'50%', background:'#66ccff', borderRadius:1}} />}</div>
+          <span style={valueStyle}>{state.health}/{state.maxHealth}</span>
+        </div>
+        <div style={rowStyle}>
+          <span style={labelStyle}>MP</span>
+          <div style={barBgStyle}><div style={{width:(state.mana/state.maxMana*100)+'%', height:'100%', background:'#3366cc'}} /></div>
+          <span style={valueStyle}>{state.mana}/{state.maxMana}</span>
+        </div>
+      </div>
+      {invOpen && (
+        <>
+                    {/* Wrapper for tabs + panel, positioned as one unit */}
+          <div style={{position:'fixed', top:'45%', left:'50%', transform:'translate(-50%, -50%)', width:780, zIndex:20, pointerEvents:'auto'}}>
+            {/* Tab row sits ABOVE the panel */}
+            <div style={{display:'flex', alignItems:'flex-end', paddingLeft:8, position:'relative', zIndex:2}}>
+              <button onClick={() => setActiveTab('inventory')} style={{
+                background: '#111',
+                border: '2px solid #555',
+                borderBottom: activeTab==='inventory' ? '2px solid #111' : '2px solid #555',
+                borderRadius: '4px 4px 0 0',
+                padding: '4px 14px',
+                cursor: 'pointer',
+                fontSize: 13,
+                color: '#ccc',
+                position: 'relative',
+                zIndex: activeTab==='inventory' ? 2 : 1,
+                marginBottom: activeTab==='inventory' ? '-3px' : '-2px',
+              }}>Inventory</button>
+              <button onClick={() => setActiveTab('skilltree')} style={{
+                background: '#111',
+                border: '2px solid #555',
+                borderBottom: activeTab==='skilltree' ? '2px solid #111' : '2px solid #555',
+                borderRadius: '4px 4px 0 0',
+                padding: '4px 14px',
+                cursor: 'pointer',
+                fontSize: 13,
+                color: '#ccc',
+                marginLeft: '-2px',
+                position: 'relative',
+                zIndex: activeTab==='skilltree' ? 2 : 1,
+                marginBottom: activeTab==='skilltree' ? '-3px' : '-2px',
+              }}>Skill Tree</button>
+            </div>
+            {/* Panel — top border sits flush under the tabs */}
+            <div style={{background:'#111', border:`2px solid ${destroyMode ? '#cc3333' : '#555'}`, borderRadius:'6px 6px 6px 6px', padding:0, position:'relative', zIndex:1}} onClick={e => e.stopPropagation()}>
+              <div style={{padding:16}}>
+            {activeTab === 'inventory' ? (
               <>
-                <h3 style={{color:'var(--gold)', margin:0}}>LFO</h3>
-                <div className="effect-row">
-                  <input type="checkbox" checked={config.lfo?.enabled||false} onChange={e=>updateLFO('enabled',e.target.checked)} />
-                  <label>Enable</label>
-                </div>
-                <div className="effect-row">
-                  <label>Wave</label>
-                  <select value={config.lfo?.waveform||'sine'} onChange={e=>updateLFO('waveform',e.target.value)} style={{width:'80px'}}>
-                    <option value="sine">Sine</option>
-                    <option value="triangle">Triangle</option>
-                    <option value="square">Square</option>
-                    <option value="sawtooth">Sawtooth</option>
-                  </select>
-                </div>
-                <div className="effect-row">
-                  <label>Rate</label>
-                  <input type="range" min="0.1" max="20" step="0.1" value={config.lfo?.rate||2} onChange={e=>updateLFO('rate',+e.target.value)} />
-                  <input type="number" value={config.lfo?.rate||2} step="0.1" onChange={e=>updateLFO('rate',+e.target.value)} />
-                </div>
-                <div className="effect-row">
-                  <label>Depth</label>
-                  <input type="range" min="0" max="1" step="0.01" value={config.lfo?.depth||0.5} onChange={e=>updateLFO('depth',+e.target.value)} />
-                  <input type="number" value={config.lfo?.depth||0.5} step="0.01" onChange={e=>updateLFO('depth',+e.target.value)} />
-                </div>
-                <div className="effect-row">
-                  <label>Target</label>
-                  <select value={config.lfo?.target||'filter'} onChange={e=>updateLFO('target',e.target.value)} style={{width:'80px'}}>
-                    <option value="filter">Filter</option>
-                    <option value="pitch">Pitch</option>
-                    <option value="gain">Gain</option>
-                  </select>
-                </div>
-              </>
-            )}
+                <div style={{display:'flex', gap:12}}>
+          {/* Stats column (left) */}
+          <div style={{width:160, display:'flex', flexDirection:'column', gap:6, borderRight:'1px solid #333', paddingRight:12, flexShrink:0}}>
+            <div style={{color:'#ccc', fontSize:13, marginBottom:4}}>Stats</div>
+            <div style={{color:'#aaa', fontSize:11}}>HP: {state.maxHealth}</div>
+            <div style={{color:'#aaa', fontSize:11}}>MP: {state.maxMana}</div>
+            <div style={{color:'#aaa', fontSize:11}}>Shield: {state.shield || 0}/{state.maxShield || 0}</div>
+            <div style={{color:'#aaa', fontSize:11}}>ATK: {state.attackDamage}</div>
+            <div style={{color:'#aaa', fontSize:11}}>SPD: {state.playerSpeed}</div>
+            <div style={{color:'#aaa', fontSize:11, opacity: (state.lifesteal||0) > 0 ? 1 : 0.4}}>Lifesteal: {state.lifesteal || 0}%</div>
+            <div style={{color:'#aaa', fontSize:11, opacity: (state.frostChance||0) > 0 ? 1 : 0.4}}>Frost: {state.frostChance || 0}%</div>
+            <div style={{color:'#aaa', fontSize:11, opacity: (state.echoChance||0) > 0 ? 1 : 0.4}}>Echo: {state.echoChance || 0}%</div>
+            <div style={{color:'#aaa', fontSize:11, opacity: (state.fireDamage||0) > 0 ? 1 : 0.4}}>Fire: {state.fireDamage || 0} dmg/s</div>
+            <div style={{color:'#aaa', fontSize:11, opacity: (state.critChance||0) > 0 ? 1 : 0.4}}>Crit: {state.critChance || 0}%</div>
+            <div style={{color:'#aaa', fontSize:11, opacity: (state.manaOnHit||0) > 0 ? 1 : 0.4}}>Mana/hit: {state.manaOnHit || 0}</div>
+            <div style={{color:'#aaa', fontSize:11, opacity: (state.thorns||0) > 0 ? 1 : 0.4}}>Thorns: {state.thorns || 0}%</div>
+            <div style={{color:'#aaa', fontSize:11, opacity: (state.paralyzeChance||0) > 0 ? 1 : 0.4}}>Paralyze: {state.paralyzeChance || 0}%</div>
+            <div style={{color:'#aaa', fontSize:11, opacity: (state.xpGain||0) > 0 ? 1 : 0.4}}>XP Gain: {state.xpGain || 0}%</div>
+            <div style={{color:'#aaa', fontSize:11, opacity: (state.warding||0) > 0 ? 1 : 0.4}}>Warding: {state.warding || 0}</div>
+
           </div>
-          <button className="panel-toggle left" onClick={(e)=>{ e.stopPropagation(); setShowLFO(s=>!s); }} title="LFO">
-            {showLFO ? '▶' : '◀'}
-          </button>
-          <div className="modal">
-            <h3>{editing?'Edit Sound':'Create Sound'}</h3>
-            <div className="synth-grid">
-              <label>Name</label>
-              <input type="text" value={name} onChange={e=>setName(e.target.value)} style={{gridColumn:'2/4', width:'100%'}} />
-              <label>Osc Type</label>
-              <select value={config.type} onChange={e=>update('type',e.target.value)}>
-                <option value="sine">Sine</option><option value="square">Square</option><option value="sawtooth">Sawtooth</option><option value="triangle">Triangle</option>
-              </select><div></div>
-              <label>Filter</label>
-              <select value={config.filterType} onChange={e=>update('filterType',e.target.value)}>
-                <option value="lowpass">Lowpass</option><option value="highpass">Highpass</option><option value="bandpass">Bandpass</option><option value="notch">Notch</option>
-              </select><div></div>
-              <label>Cutoff</label>
-              <input type="range" min="20" max="8000" step="1" value={config.cutoff} onChange={e=>update('cutoff',+e.target.value)} />
-              <input type="number" value={config.cutoff} onChange={e=>update('cutoff',+e.target.value)} />
-              <label>Resonance</label>
-              <input type="range" min="0" max="20" step="0.1" value={config.resonance} onChange={e=>update('resonance',+e.target.value)} />
-              <input type="number" value={config.resonance} onChange={e=>update('resonance',+e.target.value)} />
-              <label>Attack</label>
-              <input type="range" min="0" max="2" step="0.01" value={config.attack} onChange={e=>update('attack',+e.target.value)} />
-              <input type="number" value={config.attack} step="0.01" onChange={e=>update('attack',+e.target.value)} />
-              <label>Decay</label>
-              <input type="range" min="0" max="2" step="0.01" value={config.decay} onChange={e=>update('decay',+e.target.value)} />
-              <input type="number" value={config.decay} step="0.01" onChange={e=>update('decay',+e.target.value)} />
-              <label>Sustain</label>
-              <input type="range" min="0" max="1" step="0.01" value={config.sustain} onChange={e=>update('sustain',+e.target.value)} />
-              <input type="number" value={config.sustain} step="0.01" onChange={e=>update('sustain',+e.target.value)} />
-              <label>Release</label>
-              <input type="range" min="0" max="2" step="0.01" value={config.release} onChange={e=>update('release',+e.target.value)} />
-              <input type="number" value={config.release} step="0.01" onChange={e=>update('release',+e.target.value)} />
-              <label>Gain</label>
-              <input type="range" min="0" max="1" step="0.01" value={config.gain} onChange={e=>update('gain',+e.target.value)} />
-              <input type="number" value={config.gain} step="0.01" onChange={e=>update('gain',+e.target.value)} />
-
-              <label>Post Filter</label>
-              <input type="checkbox" checked={config.postFilterEnabled||false} onChange={e=>update('postFilterEnabled',e.target.checked)} />
-              <span style={{fontSize:'0.85rem', color:'var(--text-dim)'}}>On</span>
-
-              <label>Type</label>
-              <select value={config.postFilterType||'lowpass'} onChange={e=>update('postFilterType',e.target.value)}>
-                <option value="lowpass">Lowpass</option>
-                <option value="highpass">Highpass</option>
-              </select>
-              <div></div>
-
-              <label>Freq</label>
-              <input type="range" min="20" max="8000" step="1" value={config.postFilterFreq||2000} onChange={e=>update('postFilterFreq',+e.target.value)} />
-              <input type="number" value={config.postFilterFreq||2000} onChange={e=>update('postFilterFreq',+e.target.value)} />
-
-              <label>Q</label>
-              <input type="range" min="0" max="20" step="0.1" value={config.postFilterQ||0} onChange={e=>update('postFilterQ',+e.target.value)} />
-              <input type="number" value={config.postFilterQ||0} step="0.1" onChange={e=>update('postFilterQ',+e.target.value)} />
-            </div>
-            <div className="waveform-preview">
-              <canvas ref={waveCanvasRef} width="300" height="100" style={{display: vizMode === 'waveform' ? 'block' : 'none'}} />
-              <canvas ref={spectrumCanvasRef} width="300" height="100" style={{display: vizMode === 'spectrum' ? 'block' : 'none'}} />
-              <canvas ref={envCanvasRef} width="300" height="100" style={{display: vizMode === 'envelope' ? 'block' : 'none'}} />
-            </div>
-            <div style={{display:'flex', gap:'1rem', justifyContent:'center', marginTop: '-0.5rem'}}>
-              <button className={vizMode === 'waveform' ? 'gold' : 'secondary'} onClick={() => setVizMode('waveform')} style={{fontSize:'0.8rem', padding:'0.3rem 0.6rem'}}>Wave</button>
-              <button className={vizMode === 'freq' ? 'gold' : 'secondary'} onClick={() => setVizMode('spectrum')} style={{fontSize:'0.8rem', padding:'0.3rem 0.6rem'}}>Freq</button>
-              <button className={vizMode === 'envelope' ? 'gold' : 'secondary'} onClick={() => setVizMode('envelope')} style={{fontSize:'0.8rem', padding:'0.3rem 0.6rem'}}>Env</button>
-            </div>
-            <div style={{display:'flex', gap:'1rem', justifyContent:'flex-end'}}>
-              <button className="secondary" onClick={handlePreview}>Preview (A4)</button>
-              <button className="gold" onClick={handleSave}>{editing?'Save Changes':'Save Sound'}</button>
-            </div>
-          </div>
-          <button className="effects-toggle" onClick={(e)=>{ e.stopPropagation(); setShowEffects(s=>!s); }} title="Effects">
-            {showEffects ? '◀' : '▶'}
-          </button>
-          <div className={`effects-panel ${showEffects ? 'open' : ''}`}>
-            {showEffects && (
-              <>
-                <h3 style={{color:'var(--gold)', margin:0}}>Effects</h3>
-
-                <div className="effect-row">
-                  <input type="checkbox" checked={config.effects?.delayEnabled||false} onChange={e=>updateEffect('delayEnabled',e.target.checked)} />
-                  <label>Delay</label>
-                  <label>Time</label>
-                  <input type="range" min="0" max="1" step="0.01" value={config.effects?.delayTime||0.3} onChange={e=>updateEffect('delayTime',+e.target.value)} />
-                  <input type="number" value={config.effects?.delayTime||0.3} step="0.01" onChange={e=>updateEffect('delayTime',+e.target.value)} />
-                </div>
-                <div className="effect-row">
-                  <span style={{width:'16px'}}></span>
-                  <label>Fdbk</label>
-                  <input type="range" min="0" max="0.9" step="0.01" value={config.effects?.delayFeedback||0.4} onChange={e=>updateEffect('delayFeedback',+e.target.value)} />
-                  <input type="number" value={config.effects?.delayFeedback||0.4} step="0.01" onChange={e=>updateEffect('delayFeedback',+e.target.value)} />
-                </div>
-                <div className="effect-row">
-                  <span style={{width:'16px'}}></span>
-                  <label>Wet</label>
-                  <input type="range" min="0" max="1" step="0.01" value={config.effects?.delayWet||0.5} onChange={e=>updateEffect('delayWet',+e.target.value)} />
-                  <input type="number" value={config.effects?.delayWet||0.5} step="0.01" onChange={e=>updateEffect('delayWet',+e.target.value)} />
-                </div>
-
-                <div className="effect-row">
-                  <input type="checkbox" checked={config.effects?.reverbEnabled||false} onChange={e=>updateEffect('reverbEnabled',e.target.checked)} />
-                  <label>Reverb</label>
-                  <label>Decay</label>
-                  <input type="range" min="0" max="1" step="0.01" value={config.effects?.reverbDecay||0.5} onChange={e=>updateEffect('reverbDecay',+e.target.value)} />
-                  <input type="number" value={config.effects?.reverbDecay||0.5} step="0.01" onChange={e=>updateEffect('reverbDecay',+e.target.value)} />
-                </div>
-                <div className="effect-row">
-                  <span style={{width:'16px'}}></span>
-                  <label>Mix</label>
-                  <input type="range" min="0" max="1" step="0.01" value={config.effects?.reverbMix||0.5} onChange={e=>updateEffect('reverbMix',+e.target.value)} />
-                  <input type="number" value={config.effects?.reverbMix||0.5} step="0.01" onChange={e=>updateEffect('reverbMix',+e.target.value)} />
-                </div>
-
-                <div className="effect-row">
-                  <input type="checkbox" checked={config.effects?.distortionEnabled||false} onChange={e=>updateEffect('distortionEnabled',e.target.checked)} />
-                  <label>Distort</label>
-                  <label>Amt</label>
-                  <input type="range" min="0" max="100" step="1" value={config.effects?.distortionAmount||50} onChange={e=>updateEffect('distortionAmount',+e.target.value)} />
-                  <input type="number" value={config.effects?.distortionAmount||50} onChange={e=>updateEffect('distortionAmount',+e.target.value)} />
-                </div>
-                <div className="effect-row">
-                  <span style={{width:'16px'}}></span>
-                  <label>Curve</label>
-                  <select value={config.effects?.distortionCurve||'soft'} onChange={e=>updateEffect('distortionCurve',e.target.value)} style={{width:'80px'}}>
-                    <option value="soft">Soft Clip</option>
-                    <option value="hard">Hard Clip</option>
-                    <option value="foldback">Foldback</option>
-                  </select>
-                </div>
-                <div className="effect-row">
-                  <input type="checkbox" checked={config.effects?.bitcrusherEnabled||false} onChange={e=>updateEffect('bitcrusherEnabled',e.target.checked)} />
-                  <label>Bits</label>
-                  <input type="range" min="2" max="16" step="1" value={config.effects?.bitDepth||8} onChange={e=>updateEffect('bitDepth',+e.target.value)} />
-                  <input type="number" value={config.effects?.bitDepth||8} onChange={e=>updateEffect('bitDepth',+e.target.value)} />
-                </div>
-                <div className="effect-row">
-                  <span style={{width:'16px'}}></span>
-                  <label>Rate</label>
-                  <input type="range" min="1000" max="44100" step="100" value={config.effects?.sampleRate||8000} onChange={e=>updateEffect('sampleRate',+e.target.value)} />
-                  <input type="number" value={config.effects?.sampleRate||8000} step="100" onChange={e=>updateEffect('sampleRate',+e.target.value)} />
-                </div>
-              </>
-            )}
-          </div>
-          </div>
-        </div>
-      );
-    }
-
-    // ---------- Export Modal ----------
-    const ExportModal = ({ projectName, onExport, onClose }) => {
-      const [name, setName] = useState(projectName || '');
-      const [format, setFormat] = useState('wav');
-      const [rendering, setRendering] = useState(false);
-      const inputRef = useRef(null);
-      useEffect(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-          inputRef.current.select();
-        }
-      }, []);
-      const handleExportClick = async () => {
-        setRendering(true);
-        try {
-          await onExport(name || 'export', format);
-        } catch (e) {
-          console.error(e);
-        }
-        setRendering(false);
-        onClose();
-      };
-      return (
-        <div className="modal-overlay" onClick={onClose}>
-          <div className="modal" style={{width:'400px'}} onClick={e => e.stopPropagation()}>
-            <h3>Export Audio</h3>
-            <label style={{color:'var(--text-dim)', fontSize:'0.9rem'}}>File Name</label>
-            <input
-              ref={inputRef}
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              style={{width:'100%', padding:'0.5rem', fontSize:'1rem'}}
-              placeholder="export"
-            />
-            <label style={{color:'var(--text-dim)', fontSize:'0.9rem'}}>Format</label>
-            <div style={{display:'flex', gap:'0.5rem'}}>
-              <button className={format === 'wav' ? 'gold' : 'secondary'} onClick={() => setFormat('wav')} style={{flex:1}}>WAV</button>
-              <button className={format === 'mp3' ? 'gold' : 'secondary'} disabled title="Coming soon" style={{flex:1, opacity:0.5}}>MP3</button>
-              <button className={format === 'ogg' ? 'gold' : 'secondary'} disabled title="Coming soon" style={{flex:1, opacity:0.5}}>OGG</button>
-            </div>
-            <div style={{display:'flex', gap:'1rem', justifyContent:'flex-end'}}>
-              <button className="secondary" onClick={onClose}>Cancel</button>
-              <button className="gold" onClick={handleExportClick} disabled={rendering}>
-                {rendering ? 'Rendering...' : 'Export'}
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    };
-
-    // ---------- Name Project Modal ----------
-    const NameProjectModal = ({ initialName, onSave, onClose }) => {
-      const [name, setName] = useState(initialName || '');
-      const inputRef = useRef(null);
-      useEffect(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-          inputRef.current.select();
-        }
-      }, []);
-      const handleKeyDown = (e) => {
-        if (e.key === 'Enter') {
-          onSave(name || 'Untitled');
-        } else if (e.key === 'Escape') {
-          onClose();
-        }
-      };
-      return (
-        <div className="modal-overlay" onClick={onClose}>
-          <div className="modal" style={{width:'400px'}} onClick={e => e.stopPropagation()}>
-            <h3>Save Project</h3>
-            <label style={{color:'var(--text-dim)', fontSize:'0.9rem'}}>Project Name</label>
-            <input
-              ref={inputRef}
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              onKeyDown={handleKeyDown}
-              style={{width:'100%', padding:'0.5rem', fontSize:'1rem'}}
-              placeholder="Enter project name..."
-            />
-            <div style={{display:'flex', gap:'1rem', justifyContent:'flex-end'}}>
-              <button className="secondary" onClick={onClose}>Cancel</button>
-              <button className="gold" onClick={() => onSave(name || 'Untitled')}>Save</button>
-            </div>
-          </div>
-        </div>
-      );
-    };
-
-    // ---------- Sidebar ----------
-    function Sidebar({ sounds, selectedId, onSelect, onEdit, onImport, onSave, onOpen, setShowNameModal, setShowExportModal }) {
-      const [showModal, setShowModal] = useState(false);
-      const [importLoading, setImportLoading] = useState(false);
-      const [importFileName, setImportFileName] = useState('');
-      const fileInputRef = useRef(null);
-      const openInputRef = useRef(null);
-
-      const handleFileChange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        setImportFileName(file.name);
-        setImportLoading(true);
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          const arrayBuffer = ev.target.result;
-          const ctx = new (window.AudioContext || window.webkitAudioContext)();
-          ctx.decodeAudioData(arrayBuffer).then((audioBuffer) => {
-            onImport(file.name.replace(/\.[^.]+$/, ''), audioBuffer);
-            setImportLoading(false);
-          }).catch((err) => {
-            console.error('Failed to decode audio:', err);
-            setImportLoading(false);
-          });
-        };
-        reader.readAsArrayBuffer(file);
-        e.target.value = null;
-      };
-
-      const handleOpenChange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          const json = JSON.parse(ev.target.result);
-          onOpen(json);
-        };
-        reader.readAsText(file);
-        e.target.value = null;
-      };
-
-      return (
-        <div className="sidebar">
-          <h2>Overtone</h2>
-          <button className="gold" onClick={() => setShowModal(true)}>Create Sound</button>
-          <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="audio/*" style={{display:'none'}} />
-          <button className="secondary" onClick={() => fileInputRef.current && fileInputRef.current.click()}>Import Sound</button>
-          {importLoading && (
-            <div className="modal-overlay" onClick={(e) => e.stopPropagation()}>
-              <div className="modal" style={{textAlign:'center', gap:'1rem'}}>
-                <h3>Loading...</h3>
-                <p style={{color:'var(--text-dim)'}}>{importFileName}</p>
-                <div style={{width:'100%', height:'4px', background:'var(--border)', borderRadius:'2px', overflow:'hidden'}}>
-                  <div style={{width:'100%', height:'100%', background:'var(--gold)', animation:'pulse 1s infinite'}} />
-                </div>
-              </div>
-            </div>
-          )}
-          <div style={{flex:1, overflowY:'auto'}}>
-            {sounds.length === 0 && <div style={{color:'var(--text-dim)', fontSize:'0.9rem'}}>No sounds yet.</div>}
-            {sounds.map(s => (
-              <div key={s.id} className={`sound-item ${selectedId === s.id ? 'selected' : ''}`} onClick={() => onSelect(s.id)}>
-                <span>{s.name.length > 18 ? s.name.slice(0,18) + '…' : s.name}</span>
-                {s.type !== 'sample' && (
-                  <button onClick={(e) => { e.stopPropagation(); onEdit(s); }}>Edit</button>
-                )}
-              </div>
-            ))}
-          </div>
-          {showModal && <SoundModal onClose={() => setShowModal(false)} />}
-          <div className="sidebar-bottom">
-            <button className="secondary" onClick={() => setShowNameModal(true)}>Save Project</button>
-            <input type="file" ref={openInputRef} onChange={handleOpenChange} accept=".overtone.json,application/json" style={{display:'none'}} />
-            <button className="secondary" onClick={() => openInputRef.current && openInputRef.current.click()}>Open Project</button>
-            <button className="secondary" onClick={() => setShowExportModal(true)}>Export Audio</button>
-          </div>
-        </div>
-      );
-    }
-
-    // ---------- Transport Bar ----------
-    function TransportBar({ playing, onPlay, onStop, onReturnToStart, bpm, onBpmChange, totalDuration, onTotalDurationChange, arrangementLength, masterVolume, onVolumeChange, projectName }) {
-      return (
-        <div className="transport-bar">
-          <button className="gold" onClick={onReturnToStart} title="Return to Start">⏮</button>
-          {!playing ? (
-            <button className="gold" onClick={onPlay} title="Play">▶</button>
-          ) : (
-            <button className="secondary" onClick={onStop} title="Stop" style={{fontSize:'1.4rem', lineHeight:'1', padding:'0.3rem 0.6rem'}}>■</button>
-          )}
-          <label style={{color:'var(--text-dim)', fontSize:'0.9rem'}}>BPM</label>
-          <input type="number" value={bpm} onChange={e => onBpmChange(+e.target.value)} min="40" max="300" style={{width:'50px'}} />
-          <label style={{color:'var(--text-dim)', fontSize:'0.9rem'}}>Volume</label>
-          <input type="range" min="0" max="100" value={masterVolume} onChange={e => onVolumeChange(+e.target.value)} style={{width:'150px'}} />
-          <label style={{color:'var(--text-dim)', fontSize:'0.9rem', marginLeft:'auto'}}>Duration (s)</label>
-          <input type="number" value={totalDuration} onChange={e => onTotalDurationChange(+e.target.value)} min="1" max="300" step="0.1" style={{width:'70px'}} />
-          <span style={{color:'var(--text-dim)', fontSize:'0.8rem'}}>{arrangementLength} steps</span>
-          {projectName && <span style={{color:'var(--gold)', fontSize:'1.2rem', marginLeft:'auto', fontWeight:'bold'}}>{projectName}</span>}
-        </div>
-      );
-    }
-
-    // ---------- Sequencer (unchanged) ----------
-    function Sequencer({ clips, tracks, currentStep, onDeleteClip, onSelectClip, selectedClipId, onMoveClip, sounds, arrangementLength }) {
-      const containerRef = useRef(null);
-      const [drag, setDrag] = useState(null);
-      const [preview, setPreview] = useState(null);
-
-      useEffect(() => {
-        if (containerRef.current) {
-          const el = containerRef.current;
-          const left = currentStep * STEP_WIDTH - el.clientWidth / 2;
-          el.scrollLeft = Math.max(0, Math.min(left, el.scrollWidth - el.clientWidth));
-        }
-      }, [currentStep]);
-
-      useEffect(() => {
-        if (!drag) return;
-        const handleMouseMove = (e) => {
-          const container = containerRef.current;
-          if (!container) return;
-          const rect = container.getBoundingClientRect();
-          const scrollLeft = container.scrollLeft;
-          const x = e.clientX - rect.left + scrollLeft;
-          const y = e.clientY - rect.top + container.scrollTop;
-          const rawX = x - drag.offsetX;
-          const clipSteps = drag.clipSteps || STEPS;
-          const stepX = Math.max(0, Math.min(arrangementLength - clipSteps, Math.round(rawX / STEP_WIDTH)));
-          const trackIndex = Math.floor(y / 40);
-          const trackId = tracks[trackIndex]?.id || null;
-          setPreview({ x: stepX * STEP_WIDTH, trackId });
-        };
-        const handleMouseUp = () => {
-          if (preview && preview.trackId) {
-            onMoveClip(drag.clipId, preview.x / STEP_WIDTH, preview.trackId);
-          }
-          setDrag(null);
-          setPreview(null);
-          document.removeEventListener('mousemove', handleMouseMove);
-          document.removeEventListener('mouseup', handleMouseUp);
-        };
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
-        return () => {
-          document.removeEventListener('mousemove', handleMouseMove);
-          document.removeEventListener('mouseup', handleMouseUp);
-        };
-      }, [drag, preview, tracks, onMoveClip]);
-
-      const handleMouseDown = (e, clip) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const container = containerRef.current;
-        if (!container) return;
-        const rect = container.getBoundingClientRect();
-        const offsetX = e.clientX - rect.left + container.scrollLeft - clip.startStep * STEP_WIDTH;
-        const offsetY = e.clientY - rect.top + container.scrollTop - (tracks.findIndex(t => t.id === clip.trackId) * 40);
-        setDrag({ clipId: clip.id, offsetX, offsetY, startStep: clip.startStep, trackId: clip.trackId, clipSteps: clip.steps || STEPS });
-        onSelectClip(clip.id);
-      };
-
-      return (
-        <div className="sequencer-container">
-          <div className="sequencer-toolbar">
-            <span style={{color:'var(--text-dim)', fontSize:'0.9rem'}}>Sequencer</span>
-            <span style={{color:'var(--text-dim)', fontSize:'0.8rem', marginLeft:'auto'}}>{clips.length} clips</span>
-          </div>
-          <div className="sequencer-tracks" ref={containerRef}>
-            {tracks.map((track, tIdx) => {
-              const trackClips = clips.filter(c => c.trackId === track.id);
-              return (
-                <div key={track.id} className="track">
-                  <div className="track-label">
-                    <span>{track.name.length > 18 ? track.name.slice(0,18) + '…' : track.name}</span>
-                    <button className="danger" onClick={() => onDeleteClip(track.id)} title="Delete track">✕</button>
-                  </div>
-                  <div className="track-timeline" style={{ width: arrangementLength * STEP_WIDTH }}>
-                    {trackClips.map(clip => {
-                      const clipKey = clip.id;
-                      const clipWidth = (clip.steps || STEPS) * STEP_WIDTH;
-                      return (
-                        <div
-                          key={clipKey}
-                          className={`clip ${selectedClipId === clip.id ? 'selected' : ''} ${drag?.clipId === clip.id ? 'dragging' : ''}`}
-                          style={{ left: (drag?.clipId === clip.id ? preview?.x || clip.startStep * STEP_WIDTH : clip.startStep * STEP_WIDTH), width: clipWidth, background: clip.color || 'var(--primary)' }}
-                          onMouseDown={(e) => handleMouseDown(e, clip)}
-                          title="Drag to move"
-                        >
-                          <MiniPianoRoll notes={clip.notes || []} steps={clip.steps || STEPS} width={clipWidth} />
-                        </div>
-                      );
-                    })}
-                    {preview && preview.trackId === track.id && (
-                      <div className="clip-preview" style={{ left: preview.x, width: (clips.find(c => c.id === drag?.clipId)?.steps || STEPS) * STEP_WIDTH }} />
-                    )}
-                    <div className="sequencer-step-line" style={{ left: currentStep * STEP_WIDTH }} />
+          {/* Inventory grid 8×4 (center) */}
+          <div style={{flex:1}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6}}>
+                  <div style={{color:'#ccc', fontSize:14}}>Inventory [{inventory.length}/40] — press Tab to close</div>
+                  <div style={{display:'flex', gap:6}}>
+                    <button onClick={() => setDestroyMode(!destroyMode)} style={{background:destroyMode?'#cc3333':'#333', border:'1px solid #555', color:'#ccc', borderRadius:3, padding:'2px 8px', cursor:'pointer', fontSize:11}}>
+                      {destroyMode ? 'Destroy: ON' : 'Destroy: OFF'}
+                    </button>
+                    <button onClick={() => setShowDestroyConfirm(true)} style={{background:'#333', border:'1px solid #555', color:'#ccc', borderRadius:3, padding:'2px 8px', cursor:'pointer', fontSize:11}}>Destroy All</button>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-
-    // ---------- Miniature Piano Roll for Sequencer Clips ----------
-    const MiniPianoRoll = ({ notes, steps, width }) => {
-      const canvasRef = useRef(null);
-      const height = 40;
-
-      useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, width, height);
-        
-        if (!notes || notes.length === 0) return;
-        
-        const totalTicks = steps * SUBDIVISIONS;
-        const scaleX = width / totalTicks;
-        const scaleY = height / PITCHES.length;
-        
-        for (const note of notes) {
-          const x = note.start * scaleX;
-          const y = note.pitch * scaleY;
-          const w = note.length * scaleX;
-          const h = scaleY;
-          ctx.fillStyle = '#ffffff';
-          ctx.strokeStyle = '#000000';
-          ctx.lineWidth = 1;
-          ctx.fillRect(x, y, w, h);
-          ctx.strokeRect(x, y, w, h);
-        }
-      }, [notes, steps, width]);
-
-      return <canvas ref={canvasRef} width={width} height={height} style={{ position:'absolute', top:0, left:0, zIndex:0, background:'transparent', pointerEvents:'none' }} />;
-    };
-
-    // ---------- Piano Roll (with note list and resizable lengths) ----------
-    function PianoRoll({ notes: rawNotes, currentStep, onNotesChange, selectedSound, onPlacePattern, gridSteps, onGridStepsChange, bpm }) {
-      const notes = Array.isArray(rawNotes) ? rawNotes : [];
-      const localStep = currentStep % STEPS;
-      const canvasRef = useRef(null);
-      const notesRef = useRef(notes);
-      useEffect(() => { notesRef.current = notes; }, [notes]);
-      const [dragState, setDragState] = useState(null);
-      const [resizing, setResizing] = useState(false);
-      const resizeRef = useRef({ startX: 0, startSteps: 0 });
-
-      useEffect(() => {
-        if (canvasRef.current) {
-          drawPianoKeyboard(canvasRef.current, PITCHES, SHARPS);
-        }
-      }, []);
-
-      const handleResizeMouseDown = (e) => {
-        e.preventDefault();
-        setResizing(true);
-        resizeRef.current = { startX: e.clientX, startSteps: gridSteps };
-      };
-
-      useEffect(() => {
-        if (!resizing) return;
-        const handleMouseMove = (e) => {
-          const delta = e.clientX - resizeRef.current.startX;
-          const stepDelta = Math.round(delta / CELL_WIDTH);
-          const newSteps = Math.max(1, Math.min(64, resizeRef.current.startSteps + stepDelta));
-          onGridStepsChange(newSteps);
-        };
-        const handleMouseUp = () => {
-          setResizing(false);
-          document.removeEventListener('mousemove', handleMouseMove);
-          document.removeEventListener('mouseup', handleMouseUp);
-        };
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
-        return () => {
-          document.removeEventListener('mousemove', handleMouseMove);
-          document.removeEventListener('mouseup', handleMouseUp);
-        };
-      }, [resizing, onGridStepsChange]);
-
-      // Create a new note on empty cell (one 16th note = 4 ticks, or full sample duration)
-      const handleCellClick = (row, col, e) => {
-        e.preventDefault();
-        const tick = col * SUBDIVISIONS;
-        const currentNotes = notesRef.current;
-        const exists = currentNotes.some(n => n.pitch === row && tick >= n.start && tick < n.start + n.length);
-        if (!exists) {
-          let noteLength = SUBDIVISIONS; // default one 16th
-          if (selectedSound && selectedSound.type === 'sample' && selectedSound.buffer) {
-            const durationSec = selectedSound.buffer.duration;
-            const ticksPerSec = (bpm || 120) * 4 * SUBDIVISIONS / 60;
-            noteLength = Math.max(1, Math.round(durationSec * ticksPerSec));
-          }
-          onNotesChange([...currentNotes, { id: Date.now(), pitch: row, start: tick, length: noteLength }]);
-          // Auto-expand grid if note extends beyond current steps (debounced)
-          const endCell = Math.ceil((tick + noteLength) / SUBDIVISIONS);
-          if (endCell > gridSteps && onGridStepsChange) {
-            const targetSteps = endCell;
-            let current = gridSteps;
-            const expandStep = () => {
-              current += Math.ceil((targetSteps - current) / 4);
-              if (current >= targetSteps) {
-                onGridStepsChange(targetSteps);
-              } else {
-                onGridStepsChange(current);
-                requestAnimationFrame(expandStep);
-              }
-            };
-            requestAnimationFrame(expandStep);
-          }
-        }
-      };
-
-      // Delete a note by id
-      const isResizing = useRef(false);
-      const handleNoteClick = (id, e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (isResizing.current) return; // ignore click after resize
-        const currentNotes = notesRef.current;
-        onNotesChange(currentNotes.filter(n => n.id !== id));
-      };
-
-      // Resize start (all units in 64th-note ticks)
-      const handleResizeStart = (id, e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const currentNotes = notesRef.current;
-        const note = currentNotes.find(n => n.id === id);
-        if (!note) return;
-        isResizing.current = true;
-        setDragState({ id, startTick: note.start, currentLength: note.length });
-      };
-
-      // Global mouse move/up when resizing
-      useEffect(() => {
-        if (!dragState) return;
-
-        const handleMove = (ev) => {
-          const gridEl = document.querySelector('.grid');
-          if (!gridEl) return;
-          const rect = gridEl.getBoundingClientRect();
-          const x = ev.clientX - rect.left;
-          const tick = Math.max(0, Math.floor(x / TICK_WIDTH));
-          const maxLen = gridSteps * SUBDIVISIONS - dragState.startTick;
-          const newLen = Math.max(1, Math.min(tick - dragState.startTick + 1, maxLen));
-          setDragState(prev => ({ ...prev, currentLength: newLen }));
-        };
-
-        const handleUp = () => {
-          // Commit final length
-          const finalLen = dragState.currentLength;
-          const latestNotes = notesRef.current;
-          const newNotes = latestNotes.map(n => {
-            if (n.id === dragState.id) {
-              return { ...n, length: finalLen };
-            }
-            return n;
-          });
-          onNotesChange(newNotes);
-          setDragState(null);
-          document.removeEventListener('mousemove', handleMove);
-          document.removeEventListener('mouseup', handleUp);
-          // Reset the resizing flag after a microtask to allow the click event to be suppressed
-          setTimeout(() => { isResizing.current = false; }, 0);
-        };
-
-        document.addEventListener('mousemove', handleMove);
-        document.addEventListener('mouseup', handleUp);
-        return () => {
-          document.removeEventListener('mousemove', handleMove);
-          document.removeEventListener('mouseup', handleUp);
-        };
-      }, [dragState, onNotesChange]);
-
-      // Compute display width in pixels from ticks
-      const toPixels = (ticks) => ticks * TICK_WIDTH;
-      const getDisplayLength = (note) => {
-        if (dragState && dragState.id === note.id) {
-          return dragState.currentLength;
-        }
-        return note.length;
-      };
-
-      // Build subdivision lines for 32nd and 64th notes
-      const subLines = useMemo(() => {
-        const lines = [];
-        for (let col = 0; col < gridSteps; col++) {
-          lines.push({ left: col * CELL_WIDTH + 2 * TICK_WIDTH, thin: false });
-          lines.push({ left: col * CELL_WIDTH + 1 * TICK_WIDTH, thin: true });
-          lines.push({ left: col * CELL_WIDTH + 3 * TICK_WIDTH, thin: true });
-        }
-        return lines;
-      }, [gridSteps]);
-
-      return (
-        <div className="piano-roll-container">
-          <div className="piano-roll-toolbar">
-            <span style={{color:'var(--text-dim)', fontSize:'0.9rem'}}>Piano Roll — {selectedSound?.name || 'No sound selected'}</span>
-            {selectedSound && (
-              <button className="gold" onClick={onPlacePattern}>Place Pattern in Sequencer</button>
-            )}
-          </div>
-          <div className="piano-roll-grid-wrapper">
-            <div className="piano-labels">
-              <canvas ref={canvasRef} width="70" height={PITCHES.length * 20} />
+            <div style={{display:'grid', gridTemplateColumns:'repeat(10, 56px)', gap:2, justifyContent:'start'}}>
+              {Array.from({length:40}, (_, i) => {
+                const item = inventory[i];
+                return (
+                  <div key={i} onClick={() => { if (item) { if (destroyMode) { inventory.splice(i,1); recalcStats(); addCombatMessage(`Destroyed ${item.name || item.type.name}.`); setState({...state, inventory:[...inventory]}); } else { equipItem(i); } }}}
+                    onMouseEnter={e => { if (item) setTooltip({ item, x: e.clientX, y: e.clientY }); }}
+                    onMouseMove={e => { if (item) setTooltip({ item, x: e.clientX, y: e.clientY }); }}
+                    onMouseLeave={() => setTooltip(null)}
+                    style={{width:56, height:56, background:'#111', border:`2px solid ${item?.type?.rarity ? RARITY_COLORS[item.type.rarity] : '#333'}`, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', cursor:item?'pointer':'default', fontSize:11, color:item?item.type.color:'#444'}}>
+                    {item ? <><div style={{fontSize:11}}>{item.name ? item.name.charAt(0) : item.type.name.charAt(0)}</div>{item.affixes && item.affixes.length > 0 && <div style={{fontSize:8, color:'#ccaa44'}}>+{item.affixes.length}</div>}</> : ''}
+                  </div>
+                );
+              })}
             </div>
-            <div className="grid-scroll">
-              <div className="grid-wrapper" style={{ width: gridSteps * CELL_WIDTH, position: 'relative' }}>
-              <div className="grid" style={{'--cell-width': CELL_WIDTH + 'px', gridTemplateColumns: 'repeat(' + gridSteps + ', var(--cell-width))'}}>
-              <div className="subdivision-lines">
-              {subLines.map((line, i) => (
-              <div key={i} className={`sub-line ${line.thin ? 'thin' : ''}`} style={{ left: line.left }} />
-              ))}
-              </div>
-              {PITCHES.map((pitch, row) =>
-              Array.from({length: gridSteps}, (_, col) => (
-              <div
-              key={`${row}-${col}`}
-              className="cell"
-              onMouseDown={(e) => handleCellClick(row, col, e)}
-              />
-              ))
-              )}
-              </div>
-                <div className="piano-roll-resize-handle" onMouseDown={handleResizeMouseDown} title="Drag to resize pattern length" />
-                <div className="note-overlay">
-                  {notes.map((note) => (
-                    <div
-                      key={note.id}
-                      className="note-block"
-                      style={{
-                        top: note.pitch * 20,
-                        left: toPixels(note.start),
-                        width: toPixels(getDisplayLength(note)),
-                        height: 20
-                      }}
-                      onClick={(e) => handleNoteClick(note.id, e)}
-                    >
-                      <div
-                        className="resize-handle"
-                        onMouseDown={(e) => handleResizeStart(note.id, e)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
+            {/* Equipped items row below inventory */}
+            <div style={{marginTop:12, display:'flex', justifyContent:'space-between', flexWrap:'wrap'}}>
+              {['weapon','head','chest','gloves','pants','belt','boots','amulet','ring'].map(slot => {
+                const item = equipment[slot];
+                return (
+                  <div key={slot} onClick={() => { if (item) { if (destroyMode) { equipment[slot] = null; recalcStats(); addCombatMessage(`Destroyed ${item.name || item.type.name}.`); setState({...state, equipment:{...equipment}}); } else { unequipItem(slot); } }}}
+                    onMouseEnter={e => { if (item) setTooltip({ item, x: e.clientX, y: e.clientY }); }}
+                    onMouseMove={e => { if (item) setTooltip({ item, x: e.clientX, y: e.clientY }); }}
+                    onMouseLeave={() => setTooltip(null)}
+                    style={{display:'flex', flexDirection:'column', alignItems:'center', gap:3}}>
+                    <div style={{width:50, height:50, background:'#111', border:`2px solid ${item?.type?.rarity ? RARITY_COLORS[item.type.rarity] : '#333'}`, borderRadius:3, display:'flex', alignItems:'center', justifyContent:'center', cursor:item?'pointer':'default', fontSize:13, color:item?item.type.color:'#444'}}>
+                      {item ? <><div style={{fontSize:13}}>{item.name ? item.name.charAt(0) : item.type.name.charAt(0)}</div>{item.affixes && item.affixes.length > 0 && <div style={{fontSize:9, color:'#ccaa44'}}>+{item.affixes.length}</div>}</> : ''}
                     </div>
-                  ))}
-                </div>
+                    <div style={{color:'#888', fontSize:9, textAlign:'center'}}>{slot.toUpperCase()}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+            </div>
+              </>
+            ) : (
+              <div style={{height:400, display:'flex', alignItems:'center', justifyContent:'center', color:'#555', fontSize:14}}>
+                Skill Tree — coming soon
+              </div>
+            )}
               </div>
             </div>
           </div>
-        </div>
-      );
-    }
-
-    // ---------- App ----------
-    function App() {
-      const engineRef = useRef(new AudioEngine());
-      const [sounds, setSounds] = useState([]);
-      const [selectedId, setSelectedId] = useState(null);
-      const [editingSound, setEditingSound] = useState(null);
-      const [playing, setPlaying] = useState(false);
-      const [bpm, setBpm] = useState(120);
-      const [currentStep, setCurrentStep] = useState(0);
-      const [patterns, setPatterns] = useState({}); // { [soundId]: note[] }
-      const [clips, setClips] = useState([]);
-      const [tracks, setTracks] = useState([]);
-      const [selectedClipId, setSelectedClipId] = useState(null);
-      const [nextTrackId, setNextTrackId] = useState(1);
-      const [gridSteps, setGridSteps] = useState(16);
-      const [totalDuration, setTotalDuration] = useState(8);
-      const [masterVolume, setMasterVolume] = useState(80);
-      const [projectName, setProjectName] = useState('');
-      const [showNameModal, setShowNameModal] = useState(false);
-      const [showExportModal, setShowExportModal] = useState(false);
-      const arrangementLength = useMemo(() => Math.max(1, Math.round(totalDuration * bpm * 4 / 60)), [totalDuration, bpm]);
-      const voicePoolsRef = useRef({});
-      const sampleVoicePoolsRef = useRef({}); // { [soundId]: SampleVoicePool }
-
-      const addSound = useCallback(s => setSounds(prev => [...prev, { ...s, id: Date.now() }]), []);
-      const handleImportSound = useCallback((name, buffer) => {
-        setSounds(prev => [...prev, { id: Date.now(), name, type:'sample', buffer }]);
-      }, []);
-      const updateSound = useCallback((id, updated) => setSounds(prev => prev.map(s => s.id===id ? { ...s, ...updated } : s)), []);
-      const libraryValue = useMemo(() => ({ sounds, addSound, updateSound }), [sounds, addSound, updateSound]);
-      const selectedSound = useMemo(() => sounds.find(s => s.id === selectedId) || null, [sounds, selectedId]);
-      useEffect(() => {
-        setGridSteps(16);
-      }, [selectedId]);
-
-      const notes = useMemo(() => {
-        if (!selectedId) return [];
-        return patterns[selectedId] || [];
-      }, [patterns, selectedId]);
-
-      const handleNotesChange = useCallback((newNotes) => {
-        if (!selectedId) return;
-        setPatterns(prev => ({ ...prev, [selectedId]: newNotes }));
-      }, [selectedId]);
-
-      const usedColorSlots = useRef(new Set());
-      const getNextColorSlot = () => {
-        let slot = 0;
-        while (usedColorSlots.current.has(slot)) slot++;
-        usedColorSlots.current.add(slot);
-        const hue = (slot * 137.5) % 360;
-        return { slot, color: `hsl(${hue}, 55%, 72%)` };
-      };
-      const releaseColorSlot = (slot) => {
-        usedColorSlots.current.delete(slot);
-      };
-      const handlePlacePattern = useCallback(() => {
-        if (!selectedId || !selectedSound) return;
-        const currentNotes = notes;
-        const trackId = `track_${nextTrackId}`;
-        const { slot, color } = getNextColorSlot();
-        const newTrack = { id: trackId, name: selectedSound.name, soundId: selectedId, color, colorSlot: slot };
-        const newClip = {
-          id: `clip_${Date.now()}`,
-          trackId,
-          soundId: selectedId,
-          startStep: 0,
-          steps: gridSteps,
-          notes: currentNotes.map(n => ({...n})),
-          color
-        };
-        setTracks(prev => [...prev, newTrack]);
-        setClips(prev => [...prev, newClip]);
-        setNextTrackId(id => id + 1);
-        // Auto-expand song length if clip extends beyond current arrangement
-        const clipEndStep = newClip.startStep + newClip.steps;
-        if (clipEndStep > arrangementLength) {
-          const extraDuration = (clipEndStep - arrangementLength) * 60 / (bpm * 4);
-          const targetDuration = Math.ceil((totalDuration + extraDuration) * 10) / 10;
-          let current = totalDuration;
-          const expandStep = () => {
-            current += (targetDuration - current) / 4;
-            if (current >= targetDuration) {
-              setTotalDuration(targetDuration);
-            } else {
-              setTotalDuration(Math.ceil(current * 10) / 10);
-              requestAnimationFrame(expandStep);
-            }
-          };
-          requestAnimationFrame(expandStep);
-        }
-      }, [selectedId, selectedSound, notes, nextTrackId, gridSteps, arrangementLength, bpm, setTotalDuration]);
-
-      const handleDeleteClip = useCallback((trackId) => {
-        const deletedTrack = tracksRef.current.find(t => t.id === trackId);
-        if (deletedTrack?.colorSlot !== undefined) {
-          releaseColorSlot(deletedTrack.colorSlot);
-        }
-        setClips(prev => prev.filter(c => c.trackId !== trackId));
-        setTracks(prev => prev.filter(t => t.id !== trackId));
-        if (selectedClipId && clipsRef.current.find(c => c.id === selectedClipId)?.trackId === trackId) {
-          setSelectedClipId(null);
-        }
-      }, [selectedClipId]);
-
-      const handleSelectClip = useCallback((clipId) => {
-        setSelectedClipId(prev => prev === clipId ? null : clipId);
-      }, []);
-
-      const handleMoveClip = useCallback((clipId, newStartStep, newTrackId) => {
-        const targetTrack = tracks.find(t => t.id === newTrackId);
-        const clip = clips.find(c => c.id === clipId);
-        let newSoundId = clip?.soundId;
-        let newColor = clip?.color;
-        if (targetTrack) {
-          // Inherit sound and color from destination track
-          if (targetTrack.soundId) newSoundId = targetTrack.soundId;
-          if (targetTrack.color) {
-            newColor = targetTrack.color;
-          } else {
-            // Legacy track without color: generate one based on its index
-            const idx = tracks.indexOf(targetTrack);
-            const hue = (idx * 137.5) % 360;
-            newColor = `hsl(${hue}, 55%, 72%)`;
-            // Store the color on the track so it persists
-            setTracks(prev => prev.map(t => t.id === newTrackId ? { ...t, color: newColor } : t));
-          }
-        }
-        setClips(prev => prev.map(c => {
-          if (c.id === clipId) {
-            return { ...c, startStep: newStartStep, trackId: newTrackId, soundId: newSoundId, color: newColor };
-          }
-          return c;
-        }));
-        setTracks(prev => {
-          if (!prev.some(t => t.id === newTrackId)) {
-            const snd = sounds.find(s => s.id === newSoundId);
-            const { slot: newSlot, color: assignedColor } = getNextColorSlot();
-            return [...prev, { id: newTrackId, name: snd?.name || 'Unknown', soundId: newSoundId, color: assignedColor, colorSlot: newSlot }];
-          }
-          return prev;
-        });
-      }, [clips, tracks, sounds]);
-
-      // Scheduler
-      const schedulerRef = useRef(null);
-      const clipsRef = useRef(clips);
-      clipsRef.current = clips;
-      const tracksRef = useRef(tracks);
-      tracksRef.current = tracks;
-      const soundsRef = useRef(sounds);
-      soundsRef.current = sounds;
-
-      useEffect(() => {
-        if (playing) {
-          const ctx = engineRef.current.getContext();
-          schedulerRef.current = new Scheduler(ctx);
-          schedulerRef.current.start(bpm, arrangementLength, (step, time) => {
-            setCurrentStep(step);
-            const currentClips = clipsRef.current;
-            const currentSounds = soundsRef.current;
-            for (const clip of currentClips) {
-              const localStep = step - clip.startStep;
-              if (localStep < 0 || localStep >= (clip.steps || STEPS)) continue;
-              const snd = currentSounds.find(s => s.id === clip.soundId);
-              if (!snd) continue;
-              const noteList = clip.notes || [];
-              if (snd.type === 'sample' && snd.buffer) {
-                // Sample sound
-                let pool = sampleVoicePoolsRef.current[snd.id];
-                if (!pool) {
-                  pool = new SampleVoicePool(ctx, engineRef.current, snd.buffer, 4);
-                  sampleVoicePoolsRef.current[snd.id] = pool;
-                }
-                for (const note of noteList) {
-                  const noteStartTicks = note.start;
-                  const noteLengthTicks = note.length;
-                  const noteStartStep = Math.floor(noteStartTicks / SUBDIVISIONS);
-                  if (localStep === noteStartStep) {
-                    const pitchIndex = PITCHES.length - 1 - note.pitch;
-                    const freq = freqFromPitch(PITCHES[pitchIndex]);
-                    const noteDurationSec = (noteLengthTicks * 60) / (bpm * SUBDIVISIONS * 4);
-                    const voice = pool.getVoice();
-                    voice.play(snd.buffer, freq, time, noteDurationSec);
-                  }
-                }
-              } else {
-                // Synth sound
-                let pool = voicePoolsRef.current[snd.id];
-                if (!pool) {
-                  pool = new SynthVoicePool(ctx, engineRef.current, snd.config || {}, 8);
-                  voicePoolsRef.current[snd.id] = pool;
-                } else {
-                  pool.updateConfig(snd.config || {});
-                }
-                for (const note of noteList) {
-                  const noteStartTicks = note.start;
-                  const noteLengthTicks = note.length;
-                  const noteStartStep = Math.floor(noteStartTicks / SUBDIVISIONS);
-                  if (localStep === noteStartStep) {
-                    const pitchIndex = PITCHES.length - 1 - note.pitch;
-                    const freq = freqFromPitch(PITCHES[pitchIndex]);
-                    const noteDurationSec = (noteLengthTicks * 60) / (bpm * SUBDIVISIONS * 4);
-                    const voice = pool.getVoice();
-                    voice.play(freq, time, noteDurationSec);
-                  }
-                }
-              }
-            }
-          });
-          return () => { if(schedulerRef.current) schedulerRef.current.stop(); };
-        } else {
-          if(schedulerRef.current) schedulerRef.current.stop();
-        }
-      }, [playing, bpm, arrangementLength]);
-
-      const handlePlay = () => setPlaying(true);
-      const handleStop = () => {
-        setPlaying(false);
-        // Stop all synth voices
-        for (const id in voicePoolsRef.current) {
-          voicePoolsRef.current[id].releaseAll();
-        }
-        // Stop all sample voices
-        for (const id in sampleVoicePoolsRef.current) {
-          sampleVoicePoolsRef.current[id].releaseAll();
-        }
-      };
-      const handleReturnToStart = () => {
-        if (schedulerRef.current) {
-          schedulerRef.current.reset();
-        }
-        setCurrentStep(0);
-      };
-      const handleVolumeChange = (vol) => {
-        setMasterVolume(vol);
-        engineRef.current.setMasterVolume(vol);
-      };
-      const handleEdit = (sound) => setEditingSound(sound);
-
-      const handleSave = (name) => {
-        if (name) setProjectName(name);
-        setShowNameModal(false);
-        const project = {
-          version: 1,
-          name: name || projectName || 'Untitled',
-          bpm,
-          totalDuration,
-          gridSteps,
-          sounds: sounds.map(s => ({
-            id: s.id,
-            name: s.name,
-            type: s.type,
-            config: s.type === 'synth' ? s.config : undefined,
-            // sample buffer not stored; must re-import
-            sampleName: s.type === 'sample' ? s.name : undefined,
-          })),
-          patterns,
-          clips,
-          tracks,
-          nextTrackId,
-        };
-        const json = JSON.stringify(project, null, 2);
-        const blob = new Blob([json], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = (name || projectName || 'project') + '.overtone.json';
-        a.click();
-        URL.revokeObjectURL(url);
-      };
-
-      const handleExport = async (filename, format) => {
-        const sampleRate = 44100;
-        const totalTime = totalDuration;
-        const offlineCtx = new OfflineAudioContext(2, Math.max(1, sampleRate * totalTime), sampleRate);
-
-        const offlineMaster = offlineCtx.createGain();
-        offlineMaster.gain.value = masterVolume / 100;
-        offlineMaster.connect(offlineCtx.destination);
-
-        let scheduledCount = 0;
-        const stepDur = 60 / bpm / 4;
-
-        if (clips.length === 0 && sounds.some(s => s.type === 'synth')) {
-          // No clips, but there are synth sounds: render a short test tone to prove pipeline works
-          const osc = offlineCtx.createOscillator();
-          const gain = offlineCtx.createGain();
-          osc.type = 'sine';
-          osc.frequency.value = 440;
-          gain.gain.setValueAtTime(0, 0);
-          gain.gain.linearRampToValueAtTime(0.3, 0.01);
-          gain.gain.linearRampToValueAtTime(0, 1);
-          osc.connect(gain);
-          gain.connect(offlineMaster);
-          osc.start(0);
-          osc.stop(1);
-          scheduledCount = 1;
-        } else {
-          for (const clip of clips) {
-            const snd = sounds.find(s => s.id === clip.soundId);
-            if (!snd) continue;
-            const noteList = clip.notes || [];
-            for (const note of noteList) {
-              const noteStartTicks = note.start;
-              const noteLengthTicks = note.length;
-              const noteStartStep = Math.floor(noteStartTicks / SUBDIVISIONS);
-              const noteTime = clip.startStep * stepDur + noteStartStep * stepDur;
-              const noteDurationSec = (noteLengthTicks * 60) / (bpm * SUBDIVISIONS * 4);
-              if (noteTime >= totalTime) continue;
-              scheduledCount++;
-              if (snd.type === 'sample' && snd.buffer) {
-                const src = offlineCtx.createBufferSource();
-                src.buffer = snd.buffer;
-                const pitchIndex = PITCHES.length - 1 - note.pitch;
-                const freq = freqFromPitch(PITCHES[pitchIndex]);
-                src.playbackRate.value = freq / 440;
-                src.connect(offlineMaster);
-                src.start(noteTime, 0, Math.min(noteDurationSec, totalTime - noteTime));
-              } else if (snd.config) {
-                const osc = offlineCtx.createOscillator();
-                const gain = offlineCtx.createGain();
-                const cfg = snd.config;
-                osc.type = cfg.type || 'sine';
-                osc.frequency.value = freqFromPitch(PITCHES[PITCHES.length - 1 - note.pitch]);
-                const now = noteTime;
-                gain.gain.setValueAtTime(0, now);
-                gain.gain.linearRampToValueAtTime(cfg.gain || 0.3, now + (cfg.attack || 0.01));
-                gain.gain.linearRampToValueAtTime((cfg.sustain || 0.6) * (cfg.gain || 0.3), now + (cfg.attack || 0.01) + (cfg.decay || 0.1));
-                gain.gain.linearRampToValueAtTime(0, now + noteDurationSec);
-                osc.connect(gain);
-                gain.connect(offlineMaster);
-                osc.start(now);
-                osc.stop(now + noteDurationSec + 0.1);
-              }
-            }
-          }
-        }
-
-        console.log(`Scheduled ${scheduledCount} notes for export (${totalTime}s, ${clips.length} clips, ${sounds.length} sounds)`);
-        if (scheduledCount > 0) {
-          const firstClip = clips[0];
-          if (firstClip) {
-            const firstNote = firstClip.notes[0];
-            if (firstNote) {
-              const dur = (firstNote.length * 60) / (bpm * SUBDIVISIONS * 4);
-              console.log(`First note duration: ${firstNote.length} ticks = ${dur.toFixed(2)}s, pitch row: ${firstNote.pitch}`);
-            }
-          }
-        }
-        const renderedBuffer = await offlineCtx.startRendering();
-        const wavBlob = audioBufferToWav(renderedBuffer);
-        const url = URL.createObjectURL(wavBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = (filename || 'export') + '.wav';
-        a.click();
-        URL.revokeObjectURL(url);
-      };
-
-      // WAV encoder
-      const audioBufferToWav = (buffer) => {
-        const numChannels = buffer.numberOfChannels;
-        const length = buffer.length * numChannels * 2 + 44;
-        const arrayBuffer = new ArrayBuffer(length);
-        const view = new DataView(arrayBuffer);
-        const writeString = (offset, string) => {
-          for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
-        };
-        writeString(0, 'RIFF');
-        view.setUint32(4, length - 8, true);
-        writeString(8, 'WAVE');
-        writeString(12, 'fmt ');
-        view.setUint32(16, 16, true);
-        view.setUint16(20, 1, true);
-        view.setUint16(22, numChannels, true);
-        view.setUint32(24, buffer.sampleRate, true);
-        view.setUint32(28, buffer.sampleRate * numChannels * 2, true);
-        view.setUint16(32, numChannels * 2, true);
-        view.setUint16(34, 16, true);
-        writeString(36, 'data');
-        view.setUint32(40, length - 44, true);
-        let offset = 44;
-        for (let i = 0; i < buffer.length; i++) {
-          for (let ch = 0; ch < numChannels; ch++) {
-            const sample = Math.max(-1, Math.min(1, buffer.getChannelData(ch)[i]));
-            const int16 = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
-            view.setInt16(offset, int16, true);
-            offset += 2;
-          }
-        }
-        return new Blob([arrayBuffer], { type: 'audio/wav' });
-      };
-
-      const handleOpen = (project) => {
-        // Restore project name
-        if (project.name) setProjectName(project.name);
-        // Restore simple state
-        if (project.bpm) setBpm(project.bpm);
-        if (project.totalDuration) setTotalDuration(project.totalDuration);
-        if (project.gridSteps) setGridSteps(project.gridSteps);
-        if (project.nextTrackId) setNextTrackId(project.nextTrackId);
-        if (project.patterns) setPatterns(project.patterns);
-        if (project.clips) setClips(project.clips);
-        if (project.tracks) {
-          setTracks(project.tracks);
-          // Repopulate usedColorSlots
-          project.tracks.forEach(t => {
-            if (t.colorSlot !== undefined) usedColorSlots.current.add(t.colorSlot);
-          });
-        }
-        // Restore sounds: synth sounds have config; sample sounds need re-import
-        const synths = (project.sounds || []).filter(s => s.type !== 'sample').map(s => ({
-          id: s.id, name: s.name, type: 'synth', config: s.config
-        }));
-        const samples = (project.sounds || []).filter(s => s.type === 'sample');
-        setSounds(synths);
-        // Prompt to re-import each sample sound
-        if (samples.length > 0) {
-          let idx = 0;
-          const importNext = () => {
-            if (idx >= samples.length) return;
-            const s = samples[idx++];
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'audio/*';
-            input.onchange = (e) => {
-              const file = e.target.files[0];
-              if (file) {
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                  const arrayBuffer = ev.target.result;
-                  const ctx = engineRef.current.getContext();
-                  ctx.decodeAudioData(arrayBuffer).then((buffer) => {
-                    setSounds(prev => [...prev, { id: s.id, name: s.name || file.name.replace(/\.[^.]+$/, ''), type:'sample', buffer }]);
-                    importNext();
-                  }).catch(() => importNext());
-                };
-                reader.readAsArrayBuffer(file);
-              } else {
-                importNext();
-              }
-            };
-            input.click();
-          };
-          importNext();
-        }
-      };
-
-      return (
-        <EngineContext.Provider value={engineRef.current}>
-          <SoundLibraryContext.Provider value={libraryValue}>
-            <TransportBar
-              playing={playing}
-              onPlay={handlePlay}
-              onStop={handleStop}
-              onReturnToStart={handleReturnToStart}
-              bpm={bpm}
-              onBpmChange={setBpm}
-              totalDuration={totalDuration}
-              onTotalDurationChange={setTotalDuration}
-              arrangementLength={arrangementLength}
-              masterVolume={masterVolume}
-              onVolumeChange={handleVolumeChange}
-              projectName={projectName}
-            />
-            <div className="app-layout">
-              <Sidebar
-                sounds={sounds}
-                selectedId={selectedId}
-                onSelect={setSelectedId}
-                onEdit={handleEdit}
-                onImport={handleImportSound}
-                onSave={handleSave}
-                onOpen={handleOpen}
-                setShowNameModal={setShowNameModal}
-                setShowExportModal={setShowExportModal}
-              />
-              <div className="main-area">
-                <Sequencer
-                  clips={clips}
-                  tracks={tracks}
-                  currentStep={currentStep}
-                  onDeleteClip={handleDeleteClip}
-                  onSelectClip={handleSelectClip}
-                  selectedClipId={selectedClipId}
-                  onMoveClip={handleMoveClip}
-                  sounds={sounds}
-                  arrangementLength={arrangementLength}
-                />
-                <PianoRoll
-                  notes={notes}
-                  currentStep={currentStep}
-                  onNotesChange={handleNotesChange}
-                  selectedSound={selectedSound}
-                  onPlacePattern={handlePlacePattern}
-                  gridSteps={gridSteps}
-                  onGridStepsChange={setGridSteps}
-                  bpm={bpm}
-                />
-              </div>
+        </>
+      )}
+      <div className="combat-log" ref={logRef}>
+        {state.log.map((msg,i) => <div key={i}>{msg}</div>)}
+      </div>
+      {showDestroyConfirm && (
+        <div style={{position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:40, pointerEvents:'auto'}} onClick={() => setShowDestroyConfirm(false)}>
+          <div style={{background:'#1a1a1a', border:'1px solid #555', borderRadius:6, padding:20, width:320, textAlign:'center'}} onClick={e => e.stopPropagation()}>
+            <div style={{color:'#ccc', fontSize:14, marginBottom:16}}>Destroy all inventory items?</div>
+            <div style={{display:'flex', justifyContent:'center', gap:12}}>
+              <button onClick={() => { inventory.length = 0; recalcStats(); addCombatMessage('All inventory items destroyed.'); setState({...state, inventory:[]}); setShowDestroyConfirm(false); }} style={{background:'#cc3333', border:'none', color:'#fff', borderRadius:3, padding:'6px 18px', cursor:'pointer', fontSize:13}}>Yes</button>
+              <button onClick={() => setShowDestroyConfirm(false)} style={{background:'#333', border:'1px solid #555', color:'#ccc', borderRadius:3, padding:'6px 18px', cursor:'pointer', fontSize:13}}>Cancel</button>
             </div>
-            {showExportModal && (
-              <ExportModal
-                projectName={projectName}
-                onExport={handleExport}
-                onClose={() => setShowExportModal(false)}
-              />
-            )}
-            {showNameModal && (
-              <NameProjectModal
-                initialName={projectName}
-                onSave={(name) => handleSave(name)}
-                onClose={() => setShowNameModal(false)}
-              />
-            )}
-            {editingSound && (
-              <SoundModal
-                initialSound={editingSound}
-                onClose={() => setEditingSound(null)}
-              />
-            )}
-          </SoundLibraryContext.Provider>
-        </EngineContext.Provider>
-      );
-    }
+          </div>
+        </div>
+      )}
+      {tooltip && (
+        <div style={{position:'fixed', left:tooltip.x+12, top:tooltip.y-10, background:'rgba(0,0,0,0.9)', border:'1px solid #555', borderRadius:4, padding:8, zIndex:30, pointerEvents:'none', minWidth:150}}>
+          <div style={{color:tooltip.item.type.rarity ? RARITY_COLORS[tooltip.item.type.rarity] : '#ccc', fontSize:12, marginBottom:4}}>{tooltip.item.name || tooltip.item.type.name}</div>
+          <div style={{color:'#888', fontSize:10, marginBottom:4}}>{tooltip.item.type.slot ? tooltip.item.type.slot.toUpperCase() : 'ITEM'}</div>
+          <div style={{color:'#fff', fontSize:11}}>+{tooltip.item.type.value} {tooltip.item.type.stat.toUpperCase()}</div>
+          {tooltip.item.affixes && tooltip.item.affixes.map((aff,i) => (
+            <div key={i} style={{color:'#ccaa44', fontSize:11}}>+{aff.value} {aff.stat.toUpperCase()}</div>
+          ))}
+          <div style={{color:tooltip.item.type.rarity ? RARITY_COLORS[tooltip.item.type.rarity] : '#888', fontSize:10, marginTop:4}}>{tooltip.item.type.rarity ? tooltip.item.type.rarity.toUpperCase() : 'COMMON'}</div>
+        </div>
+      )}
+    </>
+  );
+};
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-  </script>
+ReactDOM.createRoot(document.getElementById('hud-root')).render(<HudApp />);
+</script>
 </body>
 </html>
